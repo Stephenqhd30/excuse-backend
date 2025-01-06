@@ -10,8 +10,10 @@ import com.stephen.excuse.constants.CommonConstant;
 import com.stephen.excuse.common.ThrowUtils;
 import com.stephen.excuse.mapper.PictureMapper;
 import com.stephen.excuse.model.dto.picture.PictureQueryRequest;
+import com.stephen.excuse.model.dto.picture.PictureReviewRequest;
 import com.stephen.excuse.model.entity.Picture;
 import com.stephen.excuse.model.entity.User;
+import com.stephen.excuse.model.enums.ReviewStatusEnum;
 import com.stephen.excuse.model.vo.PictureVO;
 import com.stephen.excuse.model.vo.UserVO;
 import com.stephen.excuse.service.PictureService;
@@ -20,6 +22,7 @@ import com.stephen.excuse.utils.sql.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -101,6 +104,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		Integer picHeight = pictureQueryRequest.getPicHeight();
 		Double picScale = pictureQueryRequest.getPicScale();
 		String picFormat = pictureQueryRequest.getPicFormat();
+		Integer reviewStatus = pictureQueryRequest.getReviewStatus();
+		String reviewMessage = pictureQueryRequest.getReviewMessage();
+		Long reviewerId = pictureQueryRequest.getReviewerId();
 		Long userId = pictureQueryRequest.getUserId();
 		String sortField = pictureQueryRequest.getSortField();
 		String sortOrder = pictureQueryRequest.getSortOrder();
@@ -116,6 +122,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		queryWrapper.like(StringUtils.isNotBlank(introduction), "introduction", introduction);
 		queryWrapper.like(StringUtils.isNotBlank(category), "category", category);
 		queryWrapper.like(StringUtils.isNotBlank(url), "url", url);
+		queryWrapper.like(StringUtils.isNotBlank(reviewMessage), "reviewMessage", reviewMessage);
 		// JSON 数组查询
 		if (CollUtil.isNotEmpty(tags)) {
 			for (String tag : tags) {
@@ -126,11 +133,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		queryWrapper.ne(ObjectUtils.isNotEmpty(notId), "id", notId);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
+		queryWrapper.eq(ObjectUtils.isNotEmpty(reviewerId), "reviewerId", reviewerId);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(picSize), "picSize", picSize);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(picWidth), "picWidth", picWidth);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(picHeight), "picHeight", picHeight);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(picScale), "picScale", picScale);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(picFormat), "picFormat", picFormat);
+		queryWrapper.eq(ObjectUtils.isNotEmpty(reviewStatus), "reviewStatus", reviewStatus);
 		// 排序规则
 		queryWrapper.orderBy(SqlUtils.validSortField(sortField),
 				sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
@@ -211,5 +220,36 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		pictureVOPage.setRecords(pictureVOList);
 		return pictureVOPage;
 	}
+	
+	/**
+	 * 图片审核
+	 *
+	 * @param pictureReviewRequest pictureReviewRequest
+	 * @param loginUser            loginUser
+	 */
+	@Override
+	public void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser) {
+		Long id = pictureReviewRequest.getId();
+		Integer reviewStatus = pictureReviewRequest.getReviewStatus();
+		ReviewStatusEnum reviewStatusEnum = ReviewStatusEnum.getEnumByValue(reviewStatus);
+		if (id == null || reviewStatusEnum == null || ReviewStatusEnum.REVIEWING.equals(reviewStatusEnum)) {
+			throw new BusinessException(ErrorCode.PARAMS_ERROR);
+		}
+		// 判断是否存在
+		Picture oldPicture = this.getById(id);
+		ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+		// 已是该状态
+		if (oldPicture.getReviewStatus().equals(reviewStatus)) {
+			throw new BusinessException(ErrorCode.PARAMS_ERROR, "请勿重复审核");
+		}
+		// 更新审核状态
+		Picture updatePicture = new Picture();
+		BeanUtils.copyProperties(pictureReviewRequest, updatePicture);
+		updatePicture.setReviewerId(loginUser.getId());
+		updatePicture.setReviewTime(new Date());
+		boolean result = this.updateById(updatePicture);
+		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+	}
+	
 	
 }

@@ -3,17 +3,10 @@ package com.stephen.excuse.controller;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.stephen.excuse.common.BaseResponse;
-import com.stephen.excuse.common.DeleteRequest;
-import com.stephen.excuse.common.ErrorCode;
-import com.stephen.excuse.common.ResultUtils;
-import com.stephen.excuse.constants.UserConstant;
+import com.stephen.excuse.common.*;
 import com.stephen.excuse.common.exception.BusinessException;
-import com.stephen.excuse.common.ThrowUtils;
-import com.stephen.excuse.model.dto.picture.PictureAddRequest;
-import com.stephen.excuse.model.dto.picture.PictureEditRequest;
-import com.stephen.excuse.model.dto.picture.PictureQueryRequest;
-import com.stephen.excuse.model.dto.picture.PictureUpdateRequest;
+import com.stephen.excuse.constants.UserConstant;
+import com.stephen.excuse.model.dto.picture.*;
 import com.stephen.excuse.model.entity.Picture;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.vo.PictureVO;
@@ -255,4 +248,22 @@ public class PictureController {
 	}
 	
 	// endregion
+	
+	/**
+	 * 审核图片（给管理员使用）
+	 *
+	 * @param pictureReviewRequest pictureReviewRequest
+	 * @param request              request
+	 * @return {@link BaseResponse<Boolean>}
+	 */
+	@PostMapping("/review")
+	@SaCheckRole(UserConstant.ADMIN_ROLE)
+	public BaseResponse<Boolean> doPictureReview(@RequestBody PictureReviewRequest pictureReviewRequest,
+	                                             HttpServletRequest request) {
+		ThrowUtils.throwIf(pictureReviewRequest == null, ErrorCode.PARAMS_ERROR);
+		User loginUser = userService.getLoginUser(request);
+		pictureService.doPictureReview(pictureReviewRequest, loginUser);
+		return ResultUtils.success(true);
+	}
+	
 }
