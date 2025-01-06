@@ -1,25 +1,35 @@
-package com.stephen.excuse.model.entity;
+package com.stephen.excuse.model.dto.picture;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.stephen.excuse.common.PageRequest;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.util.List;
 
 /**
- * 图片
+ * 查询图片请求
  *
  * @author stephen qiu
- * @TableName picture
  */
-@TableName(value = "picture")
+@EqualsAndHashCode(callSuper = true)
 @Data
-public class Picture implements Serializable {
+public class PictureQueryRequest extends PageRequest implements Serializable {
+	
 	/**
 	 * id
 	 */
-	@TableId(type = IdType.ASSIGN_ID)
 	private Long id;
+	
+	/**
+	 * id
+	 */
+	private Long notId;
+	
+	/**
+	 * 搜索词
+	 */
+	private String searchText;
 	
 	/**
 	 * 图片 url
@@ -44,7 +54,7 @@ public class Picture implements Serializable {
 	/**
 	 * 标签（JSON 数组）
 	 */
-	private String tags;
+	private List<String> tags;
 	
 	/**
 	 * 图片体积
@@ -76,27 +86,6 @@ public class Picture implements Serializable {
 	 */
 	private Long userId;
 	
-	/**
-	 * 创建时间
-	 */
-	private Date createTime;
 	
-	/**
-	 * 编辑时间
-	 */
-	private Date editTime;
-	
-	/**
-	 * 更新时间
-	 */
-	private Date updateTime;
-	
-	/**
-	 * 是否删除
-	 */
-	@TableLogic
-	private Integer isDelete;
-	
-	@TableField(exist = false)
 	private static final long serialVersionUID = 1L;
 }
