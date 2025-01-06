@@ -5,29 +5,39 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.stephen.excuse.common.ErrorCode;
+import com.stephen.excuse.common.ThrowUtils;
 import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.constants.CommonConstant;
-import com.stephen.excuse.common.ThrowUtils;
+import com.stephen.excuse.manager.oss.CosManager;
 import com.stephen.excuse.mapper.PictureMapper;
 import com.stephen.excuse.model.dto.picture.PictureQueryRequest;
 import com.stephen.excuse.model.dto.picture.PictureReviewRequest;
+import com.stephen.excuse.model.dto.picture.PictureUploadRequest;
+import com.stephen.excuse.model.dto.picture.PictureUploadResult;
 import com.stephen.excuse.model.entity.Picture;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.enums.ReviewStatusEnum;
+import com.stephen.excuse.model.enums.file.FileUploadBizEnum;
 import com.stephen.excuse.model.vo.PictureVO;
 import com.stephen.excuse.model.vo.UserVO;
 import com.stephen.excuse.service.PictureService;
 import com.stephen.excuse.service.UserService;
+import com.stephen.excuse.utils.oss.CosUtils;
 import com.stephen.excuse.utils.sql.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -251,5 +261,70 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
 	}
 	
+	/**
+	 * 填充审核参数
+	 *
+	 * @param picture   picture
+	 * @param loginUser loginUser
+	 */
+	@Override
+	public void fillReviewParams(Picture picture, User loginUser) {
+		if (userService.isAdmin(loginUser)) {
+			// 管理员自动过审
+			picture.setReviewStatus(ReviewStatusEnum.PASS.getValue());
+			picture.setReviewerId(loginUser.getId());
+			picture.setReviewMessage("管理员自动过审");
+			picture.setReviewTime(new Date());
+		} else {
+			// 非管理员，创建或编辑都要改为待审核
+			picture.setReviewStatus(ReviewStatusEnum.REVIEWING.getValue());
+		}
+	}
 	
+	/**
+	 * 上传图片
+	 *
+	 * @param multipartFile        multipartFile
+	 * @param pictureUploadRequest pictureUploadRequest
+	 * @param loginUser            loginUser
+	 * @return {@link PictureVO}
+	 */
+	@Override
+	public PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser) throws IOException {
+		// 用于判断是新增还是更新图片
+		Long pictureId = null;
+		if (pictureUploadRequest != null) {
+			pictureId = pictureUploadRequest.getId();
+		}
+		// 如果是更新图片，需要校验图片是否存在
+		if (pictureId != null) {
+			boolean exists = this.lambdaQuery()
+					.eq(Picture::getId, pictureId)
+					.exists();
+			ThrowUtils.throwIf(!exists, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+		}
+		// 上传图片，得到信息
+		// 按照用户 id 划分目录
+		String uploadPathPrefix = String.format("/%s/%s/%s", "excuse", FileUploadBizEnum.PICTURE.getValue(), loginUser.getId());
+		PictureUploadResult pictureUploadResult = CosUtils.uploadPicture(multipartFile, uploadPathPrefix);
+		// 构造要入库的图片信息
+		Picture picture = new Picture();
+		picture.setUrl(pictureUploadResult.getUrl());
+		picture.setName(pictureUploadResult.getPicName());
+		picture.setPicSize(pictureUploadResult.getPicSize());
+		picture.setPicWidth(pictureUploadResult.getPicWidth());
+		picture.setPicHeight(pictureUploadResult.getPicHeight());
+		picture.setPicScale(pictureUploadResult.getPicScale());
+		picture.setPicFormat(pictureUploadResult.getPicFormat());
+		picture.setUserId(loginUser.getId());
+		// 如果 pictureId 不为空，表示更新，否则是新增
+		if (pictureId != null) {
+			// 如果是更新，需要补充 id 和编辑时间
+			picture.setId(pictureId);
+			picture.setEditTime(new Date());
+		}
+		boolean result = this.saveOrUpdate(picture);
+		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
+		return PictureVO.objToVo(picture);
+	}
 }

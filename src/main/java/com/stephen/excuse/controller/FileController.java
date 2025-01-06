@@ -1,16 +1,17 @@
 package com.stephen.excuse.controller;
 
-import cn.hutool.core.io.FileUtil;
 import com.stephen.excuse.common.BaseResponse;
 import com.stephen.excuse.common.ErrorCode;
 import com.stephen.excuse.common.ResultUtils;
 import com.stephen.excuse.common.ThrowUtils;
-import com.stephen.excuse.common.exception.BusinessException;
-import com.stephen.excuse.manager.oss.CosManager;
 import com.stephen.excuse.model.dto.file.UploadFileRequest;
+import com.stephen.excuse.model.dto.picture.PictureUploadResult;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.enums.file.FileUploadBizEnum;
+import com.stephen.excuse.model.vo.PictureVO;
+import com.stephen.excuse.service.LogFilesService;
 import com.stephen.excuse.service.UserService;
+import com.stephen.excuse.utils.oss.CosUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,8 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
-import java.util.Arrays;
 
 /**
  * 文件接口
@@ -37,7 +36,8 @@ public class FileController {
 	private UserService userService;
 	
 	@Resource
-	private CosManager cosManager;
+	private LogFilesService logFilesService;
+	
 	
 	/**
 	 * 文件上传(使用COS对象存储)
@@ -55,42 +55,15 @@ public class FileController {
 		ThrowUtils.throwIf(fileUploadBizEnum == null, ErrorCode.PARAMS_ERROR, "文件上传有误");
 		
 		// 校验文件类型
-		validFile(multipartFile, fileUploadBizEnum);
+		logFilesService.validFile(multipartFile, fileUploadBizEnum);
 		User loginUser = userService.getLoginUser(request);
 		
 		// 文件目录：根据业务、用户来划分
 		String path = String.format("/%s/%s/%s", "stephen", fileUploadBizEnum.getValue(), loginUser.getId());
+		// 直接上传文件
+		String s = CosUtils.uploadFile(multipartFile, path);
+		// 返回可访问地址
+		return ResultUtils.success(s);
 		
-		try {
-			// 直接上传文件
-			String s = cosManager.uploadToCos(multipartFile, path);
-			// 返回可访问地址
-			return ResultUtils.success(s);
-		} catch (IOException e) {
-			log.error("文件上床失败, 文件路径为: {}", path, e);
-			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
-		}
-	}
-	
-	/**
-	 * 校验文件
-	 *
-	 * @param multipartFile     multipartFile
-	 * @param fileUploadBizEnum 业务类型
-	 */
-	public void validFile(MultipartFile multipartFile, FileUploadBizEnum fileUploadBizEnum) {
-		// 文件大小
-		long fileSize = multipartFile.getSize();
-		// 文件后缀
-		String fileSuffix = FileUtil.getSuffix(multipartFile.getOriginalFilename());
-		if (FileUploadBizEnum.USER_AVATAR.equals(fileUploadBizEnum)) {
-			long ONE_M = 5 * 1024 * 1024L;
-			if (fileSize > ONE_M) {
-				throw new BusinessException(ErrorCode.PARAMS_SIZE_ERROR, "文件大小不能超过 5M");
-			}
-			if (!Arrays.asList("jpeg", "jpg", "svg", "png", "webp").contains(fileSuffix)) {
-				throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件类型错误");
-			}
-		}
 	}
 }

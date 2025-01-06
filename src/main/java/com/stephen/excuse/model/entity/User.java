@@ -91,12 +91,6 @@ public class User implements Serializable {
 	private String userPhone;
 	
 	/**
-	 * 标签列表(使用JSON字符数组)
-	 */
-	@ExcelIgnore
-	private String tags;
-	
-	/**
 	 * 编辑时间
 	 */
 	@ExcelIgnore

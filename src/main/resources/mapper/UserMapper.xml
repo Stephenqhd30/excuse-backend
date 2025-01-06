@@ -17,7 +17,6 @@
             <result property="userProfile" column="userProfile" jdbcType="VARCHAR"/>
             <result property="userRole" column="userRole" jdbcType="VARCHAR"/>
             <result property="userEmail" column="userEmail" jdbcType="VARCHAR"/>
-            <result property="tags" column="userEmail" jdbcType="VARCHAR"/>
             <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
             <result property="editTime" column="editTime" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
@@ -28,7 +27,7 @@
 	    id
 	    ,userAccount,userPassword,
         unionId,mpOpenId,userName,userGender,
-        userPhone,userAvatar,userProfile, tags,
+        userPhone,userAvatar,userProfile,
         userRole,userEmail,createTime, editTime,
         updateTime,isDelete
     </sql>

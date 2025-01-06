@@ -6,8 +6,11 @@ import com.qcloud.cos.transfer.Transfer;
 import com.qcloud.cos.transfer.TransferManager;
 import com.qcloud.cos.transfer.TransferManagerConfiguration;
 import com.qcloud.cos.transfer.TransferProgress;
+import com.stephen.excuse.common.ErrorCode;
+import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.config.bean.SpringContextHolder;
 import com.stephen.excuse.manager.oss.CosManager;
+import com.stephen.excuse.model.dto.picture.PictureUploadResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ThreadUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,11 +39,27 @@ public class CosUtils {
 	 * @param file     file
 	 * @param filePath filePath 文件存储路径
 	 */
-	public static void uploadFile(MultipartFile file, String filePath) {
+	public static String uploadFile(MultipartFile file, String filePath) {
 		try {
-			COS_MANAGER.uploadToCos(file, filePath);
+			return COS_MANAGER.uploadToCos(file, filePath);
 		} catch (IOException e) {
 			log.error("文件上传失败: {}", e.getMessage());
+			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件上传失败");
+		}
+	}
+	
+	/**
+	 * 上传图片
+	 *
+	 * @param file     file
+	 * @param filePath filePath 文件存储路径
+	 */
+	public static PictureUploadResult uploadPicture(MultipartFile file, String filePath) {
+		try {
+			return COS_MANAGER.uploadPictureToCos(file, filePath);
+		} catch (IOException e) {
+			log.error("图片上传失败: {}", e.getMessage());
+			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "图片上传失败");
 		}
 	}
 	

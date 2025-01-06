@@ -67,11 +67,6 @@ public class UserQueryRequest extends PageRequest implements Serializable {
 	private String userPhone;
 	
 	/**
-	 * 标签列表(使用JSON字符数组)
-	 */
-	private List<String> tags;
-	
-	/**
 	 * 至少有一个标签
 	 */
 	private List<String> orTags;

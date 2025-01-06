@@ -93,7 +93,7 @@
 		<dependency>
 			<groupId>com.qcloud</groupId>
 			<artifactId>cos_api</artifactId>
-			<version>5.6.89</version>
+			<version>5.6.233</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.aliyun.oss/aliyun-sdk-oss --><!--  -->
 		<dependency>
@@ -217,12 +217,12 @@
 			<artifactId>commons-fileupload</artifactId>
 			<version>1.5</version>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
-		</dependency>
+		<!-- <dependency> -->
+		<!-- 	<groupId>org.springframework.boot</groupId> -->
+		<!-- 	<artifactId>spring-boot-devtools</artifactId> -->
+		<!-- 	<scope>runtime</scope> -->
+		<!-- 	<optional>true</optional> -->
+		<!-- </dependency> -->
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>

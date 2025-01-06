@@ -5,11 +5,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.stephen.excuse.model.dto.picture.PictureQueryRequest;
 import com.stephen.excuse.model.dto.picture.PictureReviewRequest;
+import com.stephen.excuse.model.dto.picture.PictureUploadRequest;
 import com.stephen.excuse.model.entity.Picture;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.vo.PictureVO;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 
 /**
  * 图片服务
@@ -60,4 +63,23 @@ public interface PictureService extends IService<Picture> {
 	 */
 	void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser);
 	
+	/**
+	 * 填充审核参数
+	 *
+	 * @param picture   picture
+	 * @param loginUser loginUser
+	 */
+	void fillReviewParams(Picture picture, User loginUser);
+	
+	/**
+	 * 上传图片
+	 *
+	 * @param multipartFile        multipartFile
+	 * @param pictureUploadRequest pictureUploadRequest
+	 * @param loginUser            loginUser
+	 * @return {@link PictureVO}
+	 */
+	PictureVO uploadPicture(MultipartFile multipartFile,
+	                        PictureUploadRequest pictureUploadRequest,
+	                        User loginUser) throws IOException;
 }

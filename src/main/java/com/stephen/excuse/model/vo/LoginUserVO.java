@@ -71,11 +71,6 @@ public class LoginUserVO implements Serializable {
 	private Date editTime;
 	
 	/**
-	 * 用户标签(JSON字符数组)
-	 */
-	private List<String> tags;
-	
-	/**
 	 * token
 	 */
 	private String token;

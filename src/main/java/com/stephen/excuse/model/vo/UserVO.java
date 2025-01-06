@@ -1,15 +1,11 @@
 package com.stephen.excuse.model.vo;
 
-import cn.hutool.json.JSONUtil;
 import com.stephen.excuse.model.entity.User;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * 用户视图（脱敏）
@@ -86,17 +82,6 @@ public class UserVO implements Serializable {
 	 */
 	private Date updateTime;
 	
-	
-	/**
-	 * 标签列表(使用JSON字符数组)
-	 */
-	private List<String> tags;
-	
-	/**
-	 * 相似度
-	 */
-	private Double similarity;
-	
 	private static final long serialVersionUID = 1L;
 	
 	/**
@@ -112,9 +97,6 @@ public class UserVO implements Serializable {
 		// todo 需要进行转换
 		User user = new User();
 		BeanUtils.copyProperties(userVO, user);
-		List<String> tagList = userVO.getTags();
-		user.setTags(Optional.ofNullable(JSONUtil.toJsonStr(tagList))
-				.orElse(""));
 		return user;
 	}
 	
@@ -131,10 +113,6 @@ public class UserVO implements Serializable {
 		// todo 需要进行转换
 		UserVO userVO = new UserVO();
 		BeanUtils.copyProperties(user, userVO);
-		String tags = user.getTags();
-		userVO.setTags(Optional.ofNullable(JSONUtil.toList(tags, String.class))
-				.orElse(new ArrayList<>()));
-		
 		return userVO;
 	}
 }

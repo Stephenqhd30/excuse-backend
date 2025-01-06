@@ -160,8 +160,6 @@ public class UserController {
 		// todo 在此处将实体类和 DTO 进行转换
 		User user = new User();
 		BeanUtils.copyProperties(userAddRequest, user);
-		List<String> tagList = userAddRequest.getTags();
-		user.setTags(JSONUtil.toJsonStr(tagList));
 		// 数据校验
 		try {
 			userService.validUser(user, true);
@@ -226,8 +224,6 @@ public class UserController {
 		// todo 在此处将实体类和 DTO 进行转换
 		User user = new User();
 		BeanUtils.copyProperties(userUpdateRequest, user);
-		List<String> tagList = userUpdateRequest.getTags();
-		user.setTags(JSONUtil.toJsonStr(tagList));
 		// 数据校验
 		try {
 			userService.validUser(user, false);
@@ -343,8 +339,6 @@ public class UserController {
 		// todo 在此处将实体类和 DTO 进行转换
 		User user = new User();
 		BeanUtils.copyProperties(userEditRequest, user);
-		List<String> tagList = userEditRequest.getTags();
-		user.setTags(JSONUtil.toJsonStr(tagList));
 		// 对用户数据进行校验
 		try {
 			userService.validUser(user, false);

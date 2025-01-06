@@ -2,7 +2,6 @@ package com.stephen.excuse.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.json.JSONUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.exception.ExcelAnalysisException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -33,12 +32,10 @@ import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.*;
@@ -53,9 +50,6 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
-	
-	@Resource
-	private RedisTemplate<String, Object> redisTemplate;
 	
 	/**
 	 * 校验数据
@@ -73,7 +67,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 		String userProfile = user.getUserProfile();
 		String userEmail = user.getUserEmail();
 		String userPhone = user.getUserPhone();
-		String tags = user.getTags();
 		
 		// 创建数据时，参数不能为空
 		if (add) {
@@ -100,9 +93,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 		}
 		if (ObjectUtils.isNotEmpty(userGender)) {
 			ThrowUtils.throwIf(UserGenderEnum.getEnumByValue(userGender) == null, ErrorCode.PARAMS_ERROR, "性别填写有误");
-		}
-		if (StringUtils.isNotBlank(tags)) {
-			ThrowUtils.throwIf(tags.length() > 1024, ErrorCode.PARAMS_ERROR, "标签过长,请重新选择适合您的标签");
 		}
 	}
 	
@@ -281,6 +271,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 		return isAdmin(user);
 	}
 	
+	/**
+	 * 是否为管理员
+	 *
+	 * @param user user
+	 * @return boolean 是否为管理员
+	 */
 	@Override
 	public boolean isAdmin(User user) {
 		return user == null || !UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
@@ -316,8 +312,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 		// todo 在此处将实体类和 DTO 进行转换
 		LoginUserVO loginUserVO = new LoginUserVO();
 		BeanUtils.copyProperties(user, loginUserVO);
-		String tags = user.getTags();
-		loginUserVO.setTags(JSONUtil.toList(tags, String.class));
 		// 设置将token保存到登录用户信息中
 		loginUserVO.setToken(StpUtil.getTokenInfo().getTokenValue());
 		return loginUserVO;
@@ -396,16 +390,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 		String sortOrder = userQueryRequest.getSortOrder();
 		String userEmail = userQueryRequest.getUserEmail();
 		String userPhone = userQueryRequest.getUserPhone();
-		List<String> tagList = userQueryRequest.getTags();
 		String searchText = userQueryRequest.getSearchText();
 		QueryWrapper<User> queryWrapper = new QueryWrapper<>();
 		
-		// 遍历查询
-		if (CollUtil.isNotEmpty(tagList)) {
-			for (String tag : tagList) {
-				queryWrapper.like("tags", "\"" + tag + "\"");
-			}
-		}
 		// 精准查询
 		queryWrapper.eq(id != null, "id", id);
 		queryWrapper.ne(ObjectUtils.isNotEmpty(notId), "id", notId);

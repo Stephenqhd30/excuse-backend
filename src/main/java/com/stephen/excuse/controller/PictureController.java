@@ -9,16 +9,20 @@ import com.stephen.excuse.constants.UserConstant;
 import com.stephen.excuse.model.dto.picture.*;
 import com.stephen.excuse.model.entity.Picture;
 import com.stephen.excuse.model.entity.User;
+import com.stephen.excuse.model.enums.file.FileUploadBizEnum;
 import com.stephen.excuse.model.vo.PictureVO;
+import com.stephen.excuse.service.LogFilesService;
 import com.stephen.excuse.service.PictureService;
 import com.stephen.excuse.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -36,6 +40,9 @@ public class PictureController {
 	
 	@Resource
 	private UserService userService;
+	
+	@Resource
+	private LogFilesService logFilesService;
 	
 	// region 增删改查
 	
@@ -65,6 +72,8 @@ public class PictureController {
 		// todo 填充默认值
 		User loginUser = userService.getLoginUser(request);
 		picture.setUserId(loginUser.getId());
+		// 更新审核信息
+		pictureService.fillReviewParams(picture, loginUser);
 		// 写入数据库
 		boolean result = pictureService.save(picture);
 		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -108,7 +117,7 @@ public class PictureController {
 	 */
 	@PostMapping("/update")
 	@SaCheckRole(UserConstant.ADMIN_ROLE)
-	public BaseResponse<Boolean> updatePicture(@RequestBody PictureUpdateRequest pictureUpdateRequest) {
+	public BaseResponse<Boolean> updatePicture(@RequestBody PictureUpdateRequest pictureUpdateRequest, HttpServletRequest request) {
 		if (pictureUpdateRequest == null || pictureUpdateRequest.getId() <= 0) {
 			throw new BusinessException(ErrorCode.PARAMS_ERROR);
 		}
@@ -126,6 +135,9 @@ public class PictureController {
 		long id = pictureUpdateRequest.getId();
 		Picture oldPicture = pictureService.getById(id);
 		ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+		// 更新审核信息
+		User loginUser = userService.getLoginUser(request);
+		pictureService.fillReviewParams(picture, loginUser);
 		// 操作数据库
 		boolean result = pictureService.updateById(picture);
 		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -241,6 +253,8 @@ public class PictureController {
 		if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
 			throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
 		}
+		// 更新审核信息
+		pictureService.fillReviewParams(picture, loginUser);
 		// 操作数据库
 		boolean result = pictureService.updateById(picture);
 		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -248,6 +262,7 @@ public class PictureController {
 	}
 	
 	// endregion
+	
 	
 	/**
 	 * 审核图片（给管理员使用）
@@ -264,6 +279,37 @@ public class PictureController {
 		User loginUser = userService.getLoginUser(request);
 		pictureService.doPictureReview(pictureReviewRequest, loginUser);
 		return ResultUtils.success(true);
+	}
+	
+	/**
+	 * 图片上传(使用COS对象存储)
+	 *
+	 * @param multipartFile        multipartFile
+	 * @param pictureUploadRequest pictureUploadRequest
+	 * @param request              request
+	 * @return BaseResponse<String>
+	 */
+	@PostMapping("/upload")
+	public BaseResponse<PictureVO> uploadPicture(@RequestPart("file") MultipartFile multipartFile,
+	                                             PictureUploadRequest pictureUploadRequest, HttpServletRequest request) {
+		ThrowUtils.throwIf(multipartFile == null || multipartFile.isEmpty(), ErrorCode.PARAMS_ERROR, "上传文件不能为空");
+		ThrowUtils.throwIf(pictureUploadRequest == null, ErrorCode.PARAMS_ERROR, "上传请求参数不能为空");
+		String biz = pictureUploadRequest.getBiz();
+		FileUploadBizEnum fileUploadBizEnum = FileUploadBizEnum.getEnumByValue(biz);
+		ThrowUtils.throwIf(fileUploadBizEnum == null, ErrorCode.PARAMS_ERROR, "文件上传有误");
+		
+		// 校验图片类型
+		logFilesService.validPicture(multipartFile, fileUploadBizEnum);
+		User loginUser = userService.getLoginUser(request);
+		ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+		// 直接上传文件
+		try {
+			PictureVO pictureVO = pictureService.uploadPicture(multipartFile, pictureUploadRequest, loginUser);
+			return ResultUtils.success(pictureVO);
+		} catch (IOException e) {
+			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件上传失败");
+		}
+		
 	}
 	
 }

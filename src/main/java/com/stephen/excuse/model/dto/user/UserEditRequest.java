@@ -49,10 +49,4 @@ public class UserEditRequest implements Serializable {
 	 */
 	private String userPhone;
 	
-	/**
-	 * 标签列表(使用JSON字符数组)
-	 */
-	private List<String> tags;
-	
-	
 }

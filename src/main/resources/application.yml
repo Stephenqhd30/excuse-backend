@@ -151,12 +151,11 @@ knife4j:
       default:
         api-rule: package
         api-rule-resources:
-          - com.stephen.popcorn.controller
-          - com.stephen.popcorn.elasticsearch.controller
+          - com.stephen.excuse.controller
 
 # Redisson 配置
 redisson:
-  enabled: false
+  enabled: true
   database: ${dev.redisson.database}
   host: ${dev.redisson.host}
   port: ${dev.redisson.port}
