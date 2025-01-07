@@ -3,6 +3,7 @@ package com.stephen.excuse.model.dto.tag;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 更新标签请求
@@ -31,6 +32,11 @@ public class TagUpdateRequest implements Serializable {
 	 * 0-不是父标签，1-是父标签
 	 */
 	private Integer isParent;
+	
+	/**
+	 * id列表
+	 */
+	private List<Long> idList;
 	
 	
 	private static final long serialVersionUID = 1L;

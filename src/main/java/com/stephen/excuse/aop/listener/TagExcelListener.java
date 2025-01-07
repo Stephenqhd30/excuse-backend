@@ -89,8 +89,7 @@ public class TagExcelListener extends AnalysisEventListener<Tag> {
 			tagService.validTag(tag, true);
 			// todo 填充默认值
 			User loginUser = userService.getLoginUser(request);
-			tag.setUserId(loginUser.getId());
-			
+			newTag.setUserId(loginUser.getId());
 			cachedDataList.add(newTag);
 			successRecords.add(new SuccessRecord<>(newTag, "成功导入"));
 		} catch (Exception e) {

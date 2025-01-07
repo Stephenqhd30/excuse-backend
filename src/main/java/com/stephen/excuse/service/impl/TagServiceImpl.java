@@ -72,10 +72,10 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
 		}
 		if (ObjectUtils.isNotEmpty(isParent) && TagIsParentEnum.getEnumByValue(isParent) == TagIsParentEnum.NO) {
 			ThrowUtils.throwIf(ObjectUtils.isEmpty(parentId), ErrorCode.PARAMS_ERROR, "父标签不能为空");
-			if (ObjectUtils.isNotEmpty(parentId)) {
-				Tag byId = this.getById(parentId);
-				ThrowUtils.throwIf(byId == null, ErrorCode.PARAMS_ERROR, "父标签不存在");
-			}
+		}
+		if (ObjectUtils.isNotEmpty(parentId)) {
+			Tag byId = this.getById(parentId);
+			ThrowUtils.throwIf(byId == null, ErrorCode.PARAMS_ERROR, "父标签不存在");
 		}
 	}
 	

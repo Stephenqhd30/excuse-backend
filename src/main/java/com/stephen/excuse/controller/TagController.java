@@ -1,7 +1,9 @@
 package com.stephen.excuse.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.stephen.excuse.common.*;
 import com.stephen.excuse.common.exception.BusinessException;
@@ -10,16 +12,20 @@ import com.stephen.excuse.constants.UserConstant;
 import com.stephen.excuse.model.dto.tag.*;
 import com.stephen.excuse.model.entity.Tag;
 import com.stephen.excuse.model.entity.User;
+import com.stephen.excuse.model.enums.TagIsParentEnum;
 import com.stephen.excuse.model.vo.TagVO;
 import com.stephen.excuse.service.TagService;
 import com.stephen.excuse.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -110,17 +116,63 @@ public class TagController {
 		if (tagUpdateRequest == null || tagUpdateRequest.getId() <= 0) {
 			throw new BusinessException(ErrorCode.PARAMS_ERROR);
 		}
-		// todo 在此处将实体类和 DTO 进行转换
-		Tag tag = new Tag();
-		BeanUtils.copyProperties(tagUpdateRequest, tag);
-		// 数据校验
-		tagService.validTag(tag, false);
 		// 判断是否存在
 		long id = tagUpdateRequest.getId();
 		Tag oldTag = tagService.getById(id);
 		ThrowUtils.throwIf(oldTag == null, ErrorCode.NOT_FOUND_ERROR);
+		// todo 在此处将实体类和 DTO 进行转换
+		Tag tag = new Tag();
+		BeanUtils.copyProperties(tagUpdateRequest, tag);
+		if (ObjectUtils.isEmpty(tagUpdateRequest.getParentId())) {
+			tag.setParentId(null);
+		}
+		// 数据校验
+		tagService.validTag(tag, false);
 		// 操作数据库
 		boolean result = tagService.updateById(tag);
+		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+		return ResultUtils.success(true);
+	}
+	
+	/**
+	 * 批量更新标签（仅管理员可用）
+	 *
+	 * @param tagUpdateRequest tagUpdateRequest
+	 * @return BaseResponse<Boolean>
+	 */
+	@PostMapping("/update/batch")
+	@SaCheckRole(UserConstant.ADMIN_ROLE)
+	public BaseResponse<Boolean> updateTagByBatch(@RequestBody TagUpdateRequest tagUpdateRequest) {
+		List<Long> idList = tagUpdateRequest.getIdList();
+		if (ObjectUtils.isEmpty(idList)) {
+			throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数不能为空");
+		}
+		ArrayList<Tag> arrayList = new ArrayList<>();
+		idList.forEach(tagId -> {
+			// 判断是否存在
+			Tag oldTag = tagService.getById(tagId);
+			ThrowUtils.throwIf(oldTag == null, ErrorCode.NOT_FOUND_ERROR);
+			// todo 在此处将实体类和 DTO 进行转换
+			Tag newTag = new Tag();
+			String tagName = tagUpdateRequest.getTagName();
+			Integer isParent = tagUpdateRequest.getIsParent();
+			if (tagName != null) {
+				LambdaQueryWrapper<Tag> eq = Wrappers.lambdaQuery(Tag.class)
+						.eq(Tag::getTagName, tagName);
+				Tag tag = tagService.getOne(eq);
+				Long id = tag.getId();
+				if (tagId.equals(id)) {
+					newTag.setParentId(null);
+				} else {
+					newTag.setParentId(id);
+				}
+			}
+			newTag.setId(tagId);
+			newTag.setIsParent(isParent);
+			arrayList.add(newTag);
+		});
+		// 操作数据库
+		boolean result = tagService.updateBatchById(arrayList);
 		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
 		return ResultUtils.success(true);
 	}
@@ -161,9 +213,9 @@ public class TagController {
 	/**
 	 * 分页获取标签列表（封装类）
 	 *
-	 * @param tagQueryRequest
-	 * @param request
-	 * @return
+	 * @param tagQueryRequest tagQueryRequest
+	 * @param request         request
+	 * @return BaseResponse<Page < TagVO>>
 	 */
 	@PostMapping("/list/page/vo")
 	public BaseResponse<Page<TagVO>> listTagVOByPage(@RequestBody TagQueryRequest tagQueryRequest,
