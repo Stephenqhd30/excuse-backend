@@ -17,7 +17,7 @@ public class SuccessRecord<T> {
 	/**
 	 * 导入的用户数据
 	 */
-	private User user;
+	private T data;
 	
 	/**
 	 * 导入成功信息

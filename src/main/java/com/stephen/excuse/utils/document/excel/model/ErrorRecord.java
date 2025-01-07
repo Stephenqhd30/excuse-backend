@@ -17,7 +17,7 @@ public class ErrorRecord<T> {
 	/**
 	 * 导入的用户数据
 	 */
-	private User user;
+	private T data;
 	
 	/**
 	 * 错误信息

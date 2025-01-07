@@ -4,20 +4,18 @@ import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.event.AnalysisEventListener;
 import com.alibaba.excel.util.ListUtils;
 import com.stephen.excuse.constants.ExcelConstant;
-import com.stephen.excuse.constants.SaltConstant;
-import com.stephen.excuse.constants.UserConstant;
+import com.stephen.excuse.model.entity.Tag;
 import com.stephen.excuse.model.entity.User;
-import com.stephen.excuse.model.enums.user.UserGenderEnum;
+import com.stephen.excuse.service.TagService;
 import com.stephen.excuse.service.UserService;
 import com.stephen.excuse.utils.document.excel.model.ErrorRecord;
 import com.stephen.excuse.utils.document.excel.model.SuccessRecord;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.util.DigestUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -26,36 +24,42 @@ import java.util.concurrent.CompletableFuture;
  * @author: stephen qiu
  **/
 @Slf4j
-public class UserExcelListener extends AnalysisEventListener<User> {
+public class TagExcelListener extends AnalysisEventListener<Tag> {
+	
+	private final TagService tagService;
 	
 	private final UserService userService;
 	
+	private final HttpServletRequest request;
+	
 	/**
-	 * 有个很重要的点 UserInfoListener 不能被spring管理，
+	 * 有个很重要的点 TagInfoListener 不能被spring管理，
 	 * 要每次读取excel都要new,然后里面用到spring可以构造方法传进去
 	 *
-	 * @param userService userService
+	 * @param tagService tagService
 	 */
-	public UserExcelListener(UserService userService) {
+	public TagExcelListener(TagService tagService, UserService userService, HttpServletRequest request) {
+		this.tagService = tagService;
 		this.userService = userService;
+		this.request = request;
 	}
 	
 	/**
 	 * 缓存的证书数据列表，每批次达到BATCH_COUNT后批量插入数据库
 	 */
-	private final List<User> cachedDataList = ListUtils.newArrayListWithExpectedSize(ExcelConstant.BATCH_COUNT);
+	private final List<Tag> cachedDataList = ListUtils.newArrayListWithExpectedSize(ExcelConstant.BATCH_COUNT);
 	
 	/**
 	 * 记录异常信息的列表，用于收集处理错误的数据
 	 */
 	@Getter
-	private final List<ErrorRecord<User>> errorRecords = ListUtils.newArrayList();
+	private final List<ErrorRecord<Tag>> errorRecords = ListUtils.newArrayList();
 	
 	/**
 	 * 记录成功导入的信息，用于收集处理成功的数据
 	 */
 	@Getter
-	private final List<SuccessRecord<User>> successRecords = ListUtils.newArrayList();
+	private final List<SuccessRecord<Tag>> successRecords = ListUtils.newArrayList();
 	
 	/**
 	 * 当解析出现异常时调用
@@ -73,32 +77,27 @@ public class UserExcelListener extends AnalysisEventListener<User> {
 	 * 当读取到一行数据时，会调用这个方法，并将读取到的数据以及上下文信息作为参数传入
 	 * 可以在这个方法中对读取到的数据进行处理和操作，处理数据时要注意异常错误，保证读取数据的稳定性
 	 *
-	 * @param user    user
+	 * @param tag     tag
 	 * @param context context
 	 */
 	@Override
-	public void invoke(User user, AnalysisContext context) {
-		User newUser = new User();
-		BeanUtils.copyProperties(user, newUser);
+	public void invoke(Tag tag, AnalysisContext context) {
+		Tag newTag = new Tag();
+		BeanUtils.copyProperties(tag, newTag);
 		try {
 			// 先检查用户传入参数是否合法
-			userService.validUser(user, true);
-			newUser.setUserGender(Optional.ofNullable(newUser.getUserGender())
-					.orElse(UserGenderEnum.SECURITY.getValue()));
-			newUser.setUserEmail(Optional.ofNullable(newUser.getUserEmail())
-					.orElse("该用户很懒没有设置邮箱"));
-			newUser.setUserPhone(Optional.ofNullable(newUser.getUserPhone())
-					.orElse("该用户很懒没有设置电话"));
-			newUser.setUserAvatar(UserConstant.USER_AVATAR);
-			newUser.setUserPassword(DigestUtils.md5DigestAsHex((SaltConstant.SALT + user.getUserPassword()).getBytes()));
-			newUser.setUserRole(UserConstant.DEFAULT_ROLE);
-			cachedDataList.add(newUser);
-			successRecords.add(new SuccessRecord<>(newUser, "成功导入"));
+			tagService.validTag(tag, true);
+			// todo 填充默认值
+			User loginUser = userService.getLoginUser(request);
+			tag.setUserId(loginUser.getId());
+			
+			cachedDataList.add(newTag);
+			successRecords.add(new SuccessRecord<>(newTag, "成功导入"));
 		} catch (Exception e) {
 			// 捕获异常并记录
 			log.error("处理数据时出现异常: {}", e.getMessage());
 			// 将错误的记录信息存储到列表中
-			errorRecords.add(new ErrorRecord<>(newUser, e.getMessage()));
+			errorRecords.add(new ErrorRecord<>(newTag, e.getMessage()));
 		}
 		if (cachedDataList.size() >= ExcelConstant.BATCH_COUNT) {
 			saveDataAsync();
@@ -125,11 +124,11 @@ public class UserExcelListener extends AnalysisEventListener<User> {
 	 * 执行批量保存数据操作
 	 */
 	private void saveDataAsync() {
-		List<User> dataToSave = List.copyOf(cachedDataList);
+		List<Tag> dataToSave = List.copyOf(cachedDataList);
 		CompletableFuture.runAsync(() -> {
 			log.info("开始批量保存{}条数据到数据库...", dataToSave.size());
 			try {
-				userService.saveBatch(dataToSave);
+				tagService.saveBatch(dataToSave);
 				log.info("批量保存数据库成功！");
 			} catch (Exception e) {
 				log.error("批量保存数据库失败：{}", e.getMessage());

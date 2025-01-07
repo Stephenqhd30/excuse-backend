@@ -7,8 +7,10 @@ import com.stephen.excuse.model.dto.tag.TagDTO;
 import com.stephen.excuse.model.dto.tag.TagQueryRequest;
 import com.stephen.excuse.model.entity.Tag;
 import com.stephen.excuse.model.vo.TagVO;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 /**
  * 标签服务
@@ -58,4 +60,13 @@ public interface TagService extends IService<Tag> {
 	 * @return {@link TagDTO}
 	 */
 	TagDTO getTagDTO(Tag tag);
+	
+	/**
+	 * 导入标签数据
+	 *
+	 * @param file    上传的 Excel 文件
+	 * @param request request
+	 * @return 返回成功和错误信息
+	 */
+	Map<String, Object> importTags(MultipartFile file, HttpServletRequest request);
 }

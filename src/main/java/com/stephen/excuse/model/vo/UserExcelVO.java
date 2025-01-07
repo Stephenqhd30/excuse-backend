@@ -60,7 +60,7 @@ public class UserExcelVO implements Serializable {
 	/**
 	 * 用户头像
 	 */
-	@ColumnWidth(30)
+	@ColumnWidth(40)
 	@ExcelProperty(value = "用户头像")
 	private String userAvatar;
 	
@@ -75,28 +75,28 @@ public class UserExcelVO implements Serializable {
 	 * 用户简介
 	 */
 	@ExcelProperty("用户简介")
-	@ColumnWidth(20)
+	@ColumnWidth(40)
 	private String userProfile;
 	
 	/**
 	 * 用户角色：user/admin/ban
 	 */
 	@ExcelProperty("用户角色：user/admin/ban")
-	@ColumnWidth(30)
+	@ColumnWidth(20)
 	private String userRole;
 	
 	/**
 	 * 用户邮箱
 	 */
 	@ExcelProperty("用户邮箱")
-	@ColumnWidth(20)
+	@ColumnWidth(25)
 	private String userEmail;
 	
 	/**
 	 * 手机号码
 	 */
 	@ExcelProperty("手机号码")
-	@ColumnWidth(20)
+	@ColumnWidth(25)
 	private String userPhone;
 	
 }
