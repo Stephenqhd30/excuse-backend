@@ -1,6 +1,5 @@
 package com.stephen.excuse.utils.document.excel.model;
 
-import com.stephen.excuse.model.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

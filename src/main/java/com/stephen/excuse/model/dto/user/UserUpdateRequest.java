@@ -3,7 +3,6 @@ package com.stephen.excuse.model.dto.user;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * 用户更新请求

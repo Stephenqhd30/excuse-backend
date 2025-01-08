@@ -8,7 +8,6 @@ import com.stephen.excuse.common.ErrorCode;
 import com.stephen.excuse.common.ThrowUtils;
 import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.constants.CommonConstant;
-import com.stephen.excuse.manager.oss.CosManager;
 import com.stephen.excuse.mapper.PictureMapper;
 import com.stephen.excuse.model.dto.picture.PictureQueryRequest;
 import com.stephen.excuse.model.dto.picture.PictureReviewRequest;
