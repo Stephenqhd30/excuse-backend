@@ -64,16 +64,12 @@ public class PictureController {
 			picture.setTags(JSONUtil.toJsonStr(tags));
 		}
 		// 数据校验
-		try {
-			pictureService.validPicture(picture, true);
-		} catch (Exception e) {
-			throw new BusinessException(ErrorCode.PARAMS_ERROR, e.getMessage());
-		}
+		pictureService.validPicture(picture, true);
 		// todo 填充默认值
 		User loginUser = userService.getLoginUser(request);
 		picture.setUserId(loginUser.getId());
 		// 更新审核信息
-		pictureService.fillReviewParams(picture, loginUser);
+		picture = pictureService.fillReviewParams(picture, loginUser);
 		// 写入数据库
 		boolean result = pictureService.save(picture);
 		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);

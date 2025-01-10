@@ -265,9 +265,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 	 *
 	 * @param picture   picture
 	 * @param loginUser loginUser
+	 * @return {@link Picture}
 	 */
 	@Override
-	public void fillReviewParams(Picture picture, User loginUser) {
+	public Picture fillReviewParams(Picture picture, User loginUser) {
 		if (userService.isAdmin(loginUser)) {
 			// 管理员自动过审
 			picture.setReviewStatus(ReviewStatusEnum.PASS.getValue());
@@ -278,6 +279,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 			// 非管理员，创建或编辑都要改为待审核
 			picture.setReviewStatus(ReviewStatusEnum.REVIEWING.getValue());
 		}
+		return picture;
 	}
 	
 	/**
@@ -316,14 +318,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		picture.setPicScale(pictureUploadResult.getPicScale());
 		picture.setPicFormat(pictureUploadResult.getPicFormat());
 		picture.setUserId(loginUser.getId());
-		// 如果 pictureId 不为空，表示更新，否则是新增
 		if (pictureId != null) {
-			// 如果是更新，需要补充 id 和编辑时间
 			picture.setId(pictureId);
-			picture.setEditTime(new Date());
+			boolean b = this.updateById(picture);
+			ThrowUtils.throwIf(!b, ErrorCode.OPERATION_ERROR);
 		}
-		boolean result = this.saveOrUpdate(picture);
-		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
 		return PictureVO.objToVo(picture);
 	}
 }

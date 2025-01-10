@@ -68,8 +68,9 @@ public interface PictureService extends IService<Picture> {
 	 *
 	 * @param picture   picture
 	 * @param loginUser loginUser
+	 * @return {@link Picture}
 	 */
-	void fillReviewParams(Picture picture, User loginUser);
+	Picture fillReviewParams(Picture picture, User loginUser);
 	
 	/**
 	 * 上传图片
@@ -79,7 +80,6 @@ public interface PictureService extends IService<Picture> {
 	 * @param loginUser            loginUser
 	 * @return {@link PictureVO}
 	 */
-	PictureVO uploadPicture(MultipartFile multipartFile,
-	                        PictureUploadRequest pictureUploadRequest,
+	PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest,
 	                        User loginUser) throws IOException;
 }

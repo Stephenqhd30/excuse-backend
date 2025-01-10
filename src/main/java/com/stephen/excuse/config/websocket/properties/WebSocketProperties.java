@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * WebSocket配置属性
  *
- * @author AntonyCheng
+ * @author stephen qiu
  */
 @Data
 @ConfigurationProperties(prefix = "websocket")

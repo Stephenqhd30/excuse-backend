@@ -198,7 +198,7 @@ public class UserController {
 		User oldUser = userService.getById(id);
 		ThrowUtils.throwIf(oldUser == null, ErrorCode.NOT_FOUND_ERROR);
 		// 仅本人或管理员可删除
-		if (!oldUser.getId().equals(user.getId()) && userService.isAdmin(request)) {
+		if (oldUser.getId().equals(user.getId()) || userService.isAdmin(request)) {
 			throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
 		}
 		// 操作数据库
