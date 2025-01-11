@@ -114,5 +114,3 @@ create index idx_tags
 
 create index idx_userId
     on picture (userId);
-
-

@@ -9,6 +9,7 @@ import com.stephen.excuse.constants.UserConstant;
 import com.stephen.excuse.model.dto.picture.*;
 import com.stephen.excuse.model.entity.Picture;
 import com.stephen.excuse.model.entity.User;
+import com.stephen.excuse.model.enums.ReviewStatusEnum;
 import com.stephen.excuse.model.enums.file.FileUploadBizEnum;
 import com.stephen.excuse.model.vo.PictureVO;
 import com.stephen.excuse.service.LogFilesService;
@@ -69,12 +70,12 @@ public class PictureController {
 		User loginUser = userService.getLoginUser(request);
 		picture.setUserId(loginUser.getId());
 		// 更新审核信息
-		picture = pictureService.fillReviewParams(picture, loginUser);
+		Picture newPicture = pictureService.fillReviewParams(picture, loginUser);
 		// 写入数据库
-		boolean result = pictureService.save(picture);
+		boolean result = pictureService.save(newPicture);
 		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
 		// 返回新写入的数据 id
-		long newPictureId = picture.getId();
+		long newPictureId = newPicture.getId();
 		return ResultUtils.success(newPictureId);
 	}
 	
@@ -96,7 +97,7 @@ public class PictureController {
 		Picture oldPicture = pictureService.getById(id);
 		ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
 		// 仅本人或管理员可删除
-		if (!oldPicture.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
+		if (oldPicture.getUserId().equals(user.getId()) || userService.isAdmin(request)) {
 			throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
 		}
 		// 操作数据库
@@ -183,6 +184,9 @@ public class PictureController {
 	@PostMapping("/list/page/vo")
 	public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryRequest pictureQueryRequest,
 	                                                         HttpServletRequest request) {
+		ThrowUtils.throwIf(pictureQueryRequest == null, ErrorCode.PARAMS_ERROR);
+		// 限制只能查询过审的图片
+		pictureQueryRequest.setReviewStatus(ReviewStatusEnum.PASS.getValue());
 		long current = pictureQueryRequest.getCurrent();
 		long size = pictureQueryRequest.getPageSize();
 		// 限制爬虫
@@ -208,6 +212,8 @@ public class PictureController {
 		// 补充查询条件，只查询当前登录用户的数据
 		User loginUser = userService.getLoginUser(request);
 		pictureQueryRequest.setUserId(loginUser.getId());
+		// 限制只能查询过审的图片
+		pictureQueryRequest.setReviewStatus(ReviewStatusEnum.PASS.getValue());
 		long current = pictureQueryRequest.getCurrent();
 		long size = pictureQueryRequest.getPageSize();
 		// 限制爬虫
@@ -246,7 +252,7 @@ public class PictureController {
 		Picture oldPicture = pictureService.getById(id);
 		ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
 		// 仅本人或管理员可编辑
-		if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+		if (oldPicture.getUserId().equals(loginUser.getId()) || userService.isAdmin(loginUser)) {
 			throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
 		}
 		// 更新审核信息
@@ -296,6 +302,7 @@ public class PictureController {
 		
 		// 校验图片类型
 		logFilesService.validPicture(multipartFile, fileUploadBizEnum);
+		// todo 填充默认值
 		User loginUser = userService.getLoginUser(request);
 		ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
 		// 直接上传文件

@@ -155,7 +155,7 @@ knife4j:
 
 # Redisson 配置
 redisson:
-  enabled: true
+  enabled: false
   database: ${dev.redisson.database}
   host: ${dev.redisson.host}
   port: ${dev.redisson.port}
@@ -178,9 +178,9 @@ websocket:
   # todo 是否开启（预先关闭）
   enable: false
   # websocket服务端口
-  port: 39999
+  port: ${dev.websocket.port}
   # BOSS线程组线程数
-  boss-thread: 4
+  boss-thread: ${dev.websocket.boss-thread}
   # WORKER线程组线程数
-  worker-thread: 16
+  worker-thread: ${dev.websocket.worker-thread}
 

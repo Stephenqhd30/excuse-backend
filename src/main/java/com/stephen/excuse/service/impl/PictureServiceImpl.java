@@ -12,7 +12,7 @@ import com.stephen.excuse.mapper.PictureMapper;
 import com.stephen.excuse.model.dto.picture.PictureQueryRequest;
 import com.stephen.excuse.model.dto.picture.PictureReviewRequest;
 import com.stephen.excuse.model.dto.picture.PictureUploadRequest;
-import com.stephen.excuse.model.dto.picture.PictureUploadResult;
+import com.stephen.excuse.model.vo.PictureUploadResult;
 import com.stephen.excuse.model.entity.Picture;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.enums.ReviewStatusEnum;
@@ -269,17 +269,19 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 	 */
 	@Override
 	public Picture fillReviewParams(Picture picture, User loginUser) {
+		Picture newPicture = new Picture();
+		BeanUtils.copyProperties(picture, newPicture);
 		if (userService.isAdmin(loginUser)) {
 			// 管理员自动过审
-			picture.setReviewStatus(ReviewStatusEnum.PASS.getValue());
-			picture.setReviewerId(loginUser.getId());
-			picture.setReviewMessage("管理员自动过审");
-			picture.setReviewTime(new Date());
+			newPicture.setReviewStatus(ReviewStatusEnum.PASS.getValue());
+			newPicture.setReviewerId(loginUser.getId());
+			newPicture.setReviewMessage("管理员自动过审");
+			newPicture.setReviewTime(new Date());
 		} else {
 			// 非管理员，创建或编辑都要改为待审核
-			picture.setReviewStatus(ReviewStatusEnum.REVIEWING.getValue());
+			newPicture.setReviewStatus(ReviewStatusEnum.REVIEWING.getValue());
 		}
-		return picture;
+		return newPicture;
 	}
 	
 	/**
@@ -293,10 +295,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 	@Override
 	public PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser) throws IOException {
 		// 用于判断是新增还是更新图片
-		Long pictureId = null;
-		if (pictureUploadRequest != null) {
-			pictureId = pictureUploadRequest.getId();
-		}
+		Long pictureId = pictureUploadRequest.getId();
 		// 如果是更新图片，需要校验图片是否存在
 		if (pictureId != null) {
 			boolean exists = this.lambdaQuery()

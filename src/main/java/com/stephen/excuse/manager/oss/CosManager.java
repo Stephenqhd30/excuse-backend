@@ -19,7 +19,7 @@ import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.config.oss.cos.condition.CosCondition;
 import com.stephen.excuse.config.oss.cos.properties.CosProperties;
 import com.stephen.excuse.constants.FileConstant;
-import com.stephen.excuse.model.dto.picture.PictureUploadResult;
+import com.stephen.excuse.model.vo.PictureUploadResult;
 import com.stephen.excuse.model.entity.LogFiles;
 import com.stephen.excuse.model.enums.oss.OssTypeEnum;
 import com.stephen.excuse.service.LogFilesService;

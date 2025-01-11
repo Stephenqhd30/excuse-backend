@@ -1,4 +1,4 @@
-package com.stephen.excuse.model.dto.picture;
+package com.stephen.excuse.model.vo;
 
 import lombok.Data;
 

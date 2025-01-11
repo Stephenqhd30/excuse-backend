@@ -10,7 +10,7 @@ import com.stephen.excuse.common.ErrorCode;
 import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.config.bean.SpringContextHolder;
 import com.stephen.excuse.manager.oss.CosManager;
-import com.stephen.excuse.model.dto.picture.PictureUploadResult;
+import com.stephen.excuse.model.vo.PictureUploadResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ThreadUtils;
 import org.springframework.web.multipart.MultipartFile;
