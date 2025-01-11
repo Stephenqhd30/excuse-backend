@@ -33,10 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -139,7 +136,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 			}
 		}
 		// 精确查询
-		queryWrapper.ne(ObjectUtils.isNotEmpty(notId), "id", notId);
+		queryWrapper.ne(ObjectUtils.isNotEmpty(notId), "reviewStatus", notId);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
 		queryWrapper.eq(ObjectUtils.isNotEmpty(reviewerId), "reviewerId", reviewerId);
@@ -257,6 +254,43 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		updatePicture.setReviewerId(loginUser.getId());
 		updatePicture.setReviewTime(new Date());
 		boolean result = this.updateById(updatePicture);
+		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+	}
+	
+	/**
+	 * 批量审核图片审核
+	 *
+	 * @param pictureReviewRequest pictureReviewRequest
+	 * @param loginUser            loginUser
+	 */
+	@Override
+	public void doPictureReviewByBatch(PictureReviewRequest pictureReviewRequest, User loginUser) {
+		ArrayList<Picture> pictureList = new ArrayList<>();
+		List<Long> idList = pictureReviewRequest.getIdList();
+		Integer reviewStatus = pictureReviewRequest.getReviewStatus();
+		ReviewStatusEnum reviewStatusEnum = ReviewStatusEnum.getEnumByValue(reviewStatus);
+		for (Long pictureId : idList) {
+			if (pictureId == null || reviewStatusEnum == null || ReviewStatusEnum.REVIEWING.equals(reviewStatusEnum)) {
+				throw new BusinessException(ErrorCode.PARAMS_ERROR);
+			}
+			// 判断是否存在
+			Picture oldPicture = this.getById(pictureId);
+			ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+			// 已是该状态
+			if (oldPicture.getReviewStatus().equals(reviewStatus)) {
+				throw new BusinessException(ErrorCode.PARAMS_ERROR, "请勿重复审核");
+			}
+			// todo 在此处将实体类和 DTO 进行转换
+			Picture picture = new Picture();
+			BeanUtils.copyProperties(pictureReviewRequest, picture);
+			picture.setId(pictureId);
+			// todo 填充默认值
+			picture.setReviewerId(loginUser.getId());
+			picture.setReviewTime(new Date());
+			pictureList.add(picture);
+		}
+		// 更新审核状态
+		boolean result = this.updateBatchById(pictureList);
 		ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
 	}
 	

@@ -3,6 +3,7 @@ package com.stephen.excuse.model.dto.picture;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 图片审核请求
@@ -26,6 +27,11 @@ public class PictureReviewRequest implements Serializable {
 	 * 审核信息
 	 */
 	private String reviewMessage;
+	
+	/**
+	 * id 列表
+	 */
+	private List<Long> idList;
 	
 	
 	private static final long serialVersionUID = 1L;

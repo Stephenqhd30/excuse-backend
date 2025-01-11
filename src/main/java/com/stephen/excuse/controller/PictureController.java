@@ -2,6 +2,7 @@ package com.stephen.excuse.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.stephen.excuse.common.*;
 import com.stephen.excuse.common.exception.BusinessException;
@@ -280,6 +281,24 @@ public class PictureController {
 		ThrowUtils.throwIf(pictureReviewRequest == null, ErrorCode.PARAMS_ERROR);
 		User loginUser = userService.getLoginUser(request);
 		pictureService.doPictureReview(pictureReviewRequest, loginUser);
+		return ResultUtils.success(true);
+	}
+	
+	/**
+	 * 批量审核图片（给管理员使用）
+	 *
+	 * @param pictureReviewRequest pictureReviewRequest
+	 * @param request              request
+	 * @return {@link BaseResponse<Boolean>}
+	 */
+	@PostMapping("/review/batch")
+	@SaCheckRole(UserConstant.ADMIN_ROLE)
+	public BaseResponse<Boolean> doPictureReviewByBatch(@RequestBody PictureReviewRequest pictureReviewRequest,
+	                                                    HttpServletRequest request) {
+		// 参数校验
+		ThrowUtils.throwIf(pictureReviewRequest == null || CollectionUtils.isEmpty(pictureReviewRequest.getIdList()), ErrorCode.PARAMS_ERROR);
+		User loginUser = userService.getLoginUser(request);
+		pictureService.doPictureReviewByBatch(pictureReviewRequest, loginUser);
 		return ResultUtils.success(true);
 	}
 	
