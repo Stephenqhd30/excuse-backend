@@ -334,4 +334,50 @@ public class PictureController {
 		
 	}
 	
+	
+	/**
+	 * 通过 URL 上传图片（可重新上传）
+	 */
+	@PostMapping("/upload/url")
+	public BaseResponse<PictureVO> uploadPictureByUrl(@RequestBody PictureUploadRequest pictureUploadRequest,
+	                                                  HttpServletRequest request) throws IOException {
+		ThrowUtils.throwIf(pictureUploadRequest == null, ErrorCode.PARAMS_ERROR, "上传请求参数不能为空");
+		String biz = pictureUploadRequest.getBiz();
+		FileUploadBizEnum fileUploadBizEnum = FileUploadBizEnum.getEnumByValue(biz);
+		ThrowUtils.throwIf(fileUploadBizEnum == null, ErrorCode.PARAMS_ERROR, "文件上传有误");
+		String fileUrl = pictureUploadRequest.getFileUrl();
+		// 校验图片类型
+		pictureService.validPicture(fileUrl);
+		// todo 填充默认值
+		User loginUser = userService.getLoginUser(request);
+		ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+		// 直接上传文件
+		try {
+			PictureVO pictureVO = pictureService.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
+			return ResultUtils.success(pictureVO);
+		} catch (IOException e) {
+			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件上传失败");
+		}
+		
+	}
+	
+	/**
+	 * 爬取图片
+	 *
+	 * @param pictureUploadByBatchRequest pictureUploadByBatchRequest
+	 * @param request                     request
+	 * @return BaseResponse<Integer>
+	 */
+	@PostMapping("/upload/batch")
+	@SaCheckRole(UserConstant.ADMIN_ROLE)
+	public BaseResponse<Integer> uploadPictureByBatch(
+			@RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest,
+			HttpServletRequest request
+	) {
+		ThrowUtils.throwIf(pictureUploadByBatchRequest == null, ErrorCode.PARAMS_ERROR);
+		User loginUser = userService.getLoginUser(request);
+		int uploadCount = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
+		return ResultUtils.success(uploadCount);
+	}
+	
 }

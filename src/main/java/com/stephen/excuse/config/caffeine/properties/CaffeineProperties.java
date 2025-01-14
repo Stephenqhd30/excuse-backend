@@ -2,6 +2,7 @@ package com.stephen.excuse.config.caffeine.properties;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * Caffeine配置属性
@@ -9,6 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author stephen qiu
  */
 @Data
+@Configuration
 @ConfigurationProperties(prefix = "caffeine")
 public class CaffeineProperties {
 	

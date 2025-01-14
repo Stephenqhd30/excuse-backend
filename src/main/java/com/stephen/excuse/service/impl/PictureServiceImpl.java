@@ -1,6 +1,12 @@
 package com.stephen.excuse.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.HttpResponse;
+import cn.hutool.http.HttpStatus;
+import cn.hutool.http.HttpUtil;
+import cn.hutool.http.Method;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -11,12 +17,13 @@ import com.stephen.excuse.constants.CommonConstant;
 import com.stephen.excuse.mapper.PictureMapper;
 import com.stephen.excuse.model.dto.picture.PictureQueryRequest;
 import com.stephen.excuse.model.dto.picture.PictureReviewRequest;
+import com.stephen.excuse.model.dto.picture.PictureUploadByBatchRequest;
 import com.stephen.excuse.model.dto.picture.PictureUploadRequest;
-import com.stephen.excuse.model.vo.PictureUploadResult;
 import com.stephen.excuse.model.entity.Picture;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.enums.ReviewStatusEnum;
 import com.stephen.excuse.model.enums.file.FileUploadBizEnum;
+import com.stephen.excuse.model.vo.PictureUploadResult;
 import com.stephen.excuse.model.vo.PictureVO;
 import com.stephen.excuse.model.vo.UserVO;
 import com.stephen.excuse.service.PictureService;
@@ -26,6 +33,10 @@ import com.stephen.excuse.utils.sql.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +44,8 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -83,6 +96,61 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 			ThrowUtils.throwIf(category.length() > 80, ErrorCode.PARAMS_ERROR, "分类错误");
 		}
 	}
+	
+	/**
+	 * 校验数据
+	 *
+	 * @param fileUrl fileUrl
+	 */
+	@Override
+	public void validPicture(String fileUrl) {
+		ThrowUtils.throwIf(StrUtil.isBlank(fileUrl), ErrorCode.PARAMS_ERROR, "文件地址不能为空");
+		try {
+			// 1. 验证 URL 格式
+			// 验证是否是合法的 URL
+			new URL(fileUrl);
+		} catch (MalformedURLException e) {
+			throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件地址格式不正确");
+		}
+		
+		// 2. 校验 URL 协议
+		ThrowUtils.throwIf(!(fileUrl.startsWith("http://") || fileUrl.startsWith("https://")),
+				ErrorCode.PARAMS_ERROR, "仅支持 HTTP 或 HTTPS 协议的文件地址");
+		
+		// 3. 发送 HEAD 请求以验证文件是否存在
+		HttpResponse response = null;
+		try {
+			response = HttpUtil.createRequest(Method.HEAD, fileUrl).execute();
+			// 未正常返回，无需执行其他判断
+			if (response.getStatus() != HttpStatus.HTTP_OK) {
+				return;
+			}
+			// 4. 校验文件类型
+			String contentType = response.header("Content-Type");
+			if (StrUtil.isNotBlank(contentType)) {
+				// 允许的图片类型
+				List<String> ALLOW_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
+				ThrowUtils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()),
+						ErrorCode.PARAMS_ERROR, "文件类型错误");
+			}
+			// 5. 校验文件大小
+			String contentLengthStr = response.header("Content-Length");
+			if (StrUtil.isNotBlank(contentLengthStr)) {
+				try {
+					long contentLength = Long.parseLong(contentLengthStr);
+					final long TEN_MB = 10 * 1024 * 1024L; // 限制文件大小为 10MB
+					ThrowUtils.throwIf(contentLength > TEN_MB, ErrorCode.PARAMS_ERROR, "文件大小不能超过 10MB");
+				} catch (NumberFormatException e) {
+					throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件大小格式错误");
+				}
+			}
+		} finally {
+			if (response != null) {
+				response.close();
+			}
+		}
+	}
+	
 	
 	/**
 	 * 获取查询条件
@@ -319,7 +387,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 	}
 	
 	/**
-	 * 上传图片
+	 * 上传图片(根据文件)
 	 *
 	 * @param multipartFile        multipartFile
 	 * @param pictureUploadRequest pictureUploadRequest
@@ -358,4 +426,103 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		}
 		return PictureVO.objToVo(picture);
 	}
+	
+	/**
+	 * 上传图片(根据地址)
+	 *
+	 * @param fileUrl              fileUrl
+	 * @param pictureUploadRequest pictureUploadRequest
+	 * @param loginUser            loginUser
+	 * @return {@link PictureVO}
+	 */
+	@Override
+	public PictureVO uploadPicture(String fileUrl, PictureUploadRequest pictureUploadRequest, User loginUser) throws IOException {
+		// 用于判断是新增还是更新图片
+		Long pictureId = pictureUploadRequest.getId();
+		// 如果是更新图片，需要校验图片是否存在
+		if (pictureId != null) {
+			boolean exists = this.lambdaQuery()
+					.eq(Picture::getId, pictureId)
+					.exists();
+			ThrowUtils.throwIf(!exists, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+		}
+		// 上传图片，得到信息
+		// 按照用户 id 划分目录
+		String uploadPathPrefix = String.format("/%s/%s/%s", "excuse", FileUploadBizEnum.PICTURE.getValue(), loginUser.getId());
+		PictureUploadResult pictureUploadResult = CosUtils.uploadPicture(fileUrl, uploadPathPrefix);
+		// 构造要入库的图片信息
+		Picture picture = new Picture();
+		picture.setUrl(pictureUploadResult.getUrl());
+		picture.setName(pictureUploadResult.getPicName());
+		picture.setPicSize(pictureUploadResult.getPicSize());
+		picture.setPicWidth(pictureUploadResult.getPicWidth());
+		picture.setPicHeight(pictureUploadResult.getPicHeight());
+		picture.setPicScale(pictureUploadResult.getPicScale());
+		picture.setPicFormat(pictureUploadResult.getPicFormat());
+		picture.setUserId(loginUser.getId());
+		if (pictureId != null) {
+			picture.setId(pictureId);
+			boolean b = this.updateById(picture);
+			ThrowUtils.throwIf(!b, ErrorCode.OPERATION_ERROR);
+		}
+		return PictureVO.objToVo(picture);
+	}
+	
+	
+	/**
+	 * 批量抓取和创建图片
+	 *
+	 * @param pictureUploadByBatchRequest pictureUploadByBatchRequest
+	 * @param loginUser                   loginUser
+	 * @return 成功创建的图片数
+	 */
+	@Override
+	public Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
+		String searchText = pictureUploadByBatchRequest.getSearchText();
+		// 格式化数量
+		Integer count = pictureUploadByBatchRequest.getCount();
+		ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "最多 30 条");
+		// 要抓取的地址
+		String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", searchText);
+		Document document;
+		try {
+			document = Jsoup.connect(fetchUrl).get();
+		} catch (IOException e) {
+			log.error("获取页面失败", e);
+			throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取页面失败");
+		}
+		Element div = document.getElementsByClass("dgControl").first();
+		if (ObjUtil.isNull(div)) {
+			throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取元素失败");
+		}
+		Elements imgElementList = div.select("img.mimg");
+		int uploadCount = 0;
+		for (Element imgElement : imgElementList) {
+			String fileUrl = imgElement.attr("src");
+			if (StrUtil.isBlank(fileUrl)) {
+				log.info("当前链接为空，已跳过: {}", fileUrl);
+				continue;
+			}
+			// 处理图片上传地址，防止出现转义问题
+			int questionMarkIndex = fileUrl.indexOf("?");
+			if (questionMarkIndex > -1) {
+				fileUrl = fileUrl.substring(0, questionMarkIndex);
+			}
+			// 上传图片
+			PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+			try {
+				PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
+				log.info("图片上传成功, id = {}", pictureVO.getId());
+				uploadCount++;
+			} catch (Exception e) {
+				log.error("图片上传失败", e);
+				continue;
+			}
+			if (uploadCount >= count) {
+				break;
+			}
+		}
+		return uploadCount;
+	}
+	
 }

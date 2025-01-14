@@ -64,6 +64,21 @@ public class CosUtils {
 	}
 	
 	/**
+	 * 上传图片
+	 *
+	 * @param file     file
+	 * @param filePath filePath 文件存储路径
+	 */
+	public static PictureUploadResult uploadPicture(String fileUrl, String filePath) {
+		try {
+			return COS_MANAGER.uploadPictureToCos(fileUrl, filePath);
+		} catch (IOException e) {
+			log.error("图片上传失败: {}", e.getMessage());
+			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "图片上传失败");
+		}
+	}
+	
+	/**
 	 * 根据id从cos对象中删除
 	 *
 	 * @param id id

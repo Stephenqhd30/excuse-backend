@@ -19,13 +19,14 @@ import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.config.oss.cos.condition.CosCondition;
 import com.stephen.excuse.config.oss.cos.properties.CosProperties;
 import com.stephen.excuse.constants.FileConstant;
-import com.stephen.excuse.model.vo.PictureUploadResult;
 import com.stephen.excuse.model.entity.LogFiles;
 import com.stephen.excuse.model.enums.oss.OssTypeEnum;
+import com.stephen.excuse.model.vo.PictureUploadResult;
 import com.stephen.excuse.service.LogFilesService;
 import com.stephen.excuse.utils.encrypt.SHA3Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Conditional;
@@ -35,8 +36,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.*;
 
 /**
@@ -183,6 +186,68 @@ public class CosManager {
 			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
 		} finally {
 			this.deleteTempFile(file);
+		}
+	}
+	
+	/**
+	 * 上传文件(根据地址)
+	 *
+	 * @param fileUrl          文件地址
+	 * @param uploadPathPrefix 上传路径前缀
+	 * @return {@link PictureUploadResult}
+	 * @throws IOException 文件处理异常
+	 */
+	public PictureUploadResult uploadPictureToCos(String fileUrl, String uploadPathPrefix) throws IOException {
+		// 图片上传地址
+		String uuid = RandomUtil.randomString(16);
+		String originFileName = FileUtil.getName(fileUrl); // 从URL提取文件名
+		String uploadFileName = String.format("%s_%s.%s", DateUtil.formatDate(new Date()), uuid,
+				FileUtil.getSuffix(originFileName));
+		String uploadPath = String.format("/%s/%s", uploadPathPrefix, uploadFileName);
+		File file = null;
+		try {
+			// 下载文件并创建临时文件
+			file = File.createTempFile("upload_", null);
+			downloadFile(fileUrl, file);
+			// 上传图片
+			PutObjectResult putObjectResult = this.putPictureObject(file, uploadPath);
+			ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
+			
+			// 封装返回结果
+			PictureUploadResult uploadPictureResult = new PictureUploadResult();
+			int picWidth = imageInfo.getWidth();
+			int picHeight = imageInfo.getHeight();
+			double picScale = NumberUtil.round(picWidth * 1.0 / picHeight, 2).doubleValue();
+			uploadPictureResult.setPicName(FileUtil.mainName(originFileName));
+			uploadPictureResult.setPicWidth(picWidth);
+			uploadPictureResult.setPicHeight(picHeight);
+			uploadPictureResult.setPicScale(picScale);
+			uploadPictureResult.setPicFormat(imageInfo.getFormat());
+			uploadPictureResult.setPicSize(FileUtil.size(file));
+			uploadPictureResult.setUrl(FileConstant.COS_HOST + "/" + uploadPath);
+			return uploadPictureResult;
+		} catch (Exception e) {
+			log.error("图片上传到对象存储失败", e);
+			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
+		} finally {
+			this.deleteTempFile(file);
+		}
+	}
+	
+	/**
+	 * 从指定URL下载文件到目标文件
+	 *
+	 * @param fileUrl  文件地址
+	 * @param destFile 目标文件
+	 */
+	public void downloadFile(String fileUrl, File destFile) {
+		try (InputStream inputStream = new URL(fileUrl).openStream();
+		     FileOutputStream outputStream = new FileOutputStream(destFile)) {
+			// 将输入流数据写入到目标文件
+			IOUtils.copy(inputStream, outputStream);
+		} catch (IOException e) {
+			log.error("下载文件失败", e);
+			throw new BusinessException(ErrorCode.SYSTEM_ERROR, "下载失败");
 		}
 	}
 	

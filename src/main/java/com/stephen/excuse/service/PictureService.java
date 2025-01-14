@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.stephen.excuse.model.dto.picture.PictureQueryRequest;
 import com.stephen.excuse.model.dto.picture.PictureReviewRequest;
+import com.stephen.excuse.model.dto.picture.PictureUploadByBatchRequest;
 import com.stephen.excuse.model.dto.picture.PictureUploadRequest;
 import com.stephen.excuse.model.entity.Picture;
 import com.stephen.excuse.model.entity.User;
@@ -28,6 +29,12 @@ public interface PictureService extends IService<Picture> {
 	 * @param add     对创建的数据进行校验
 	 */
 	void validPicture(Picture picture, boolean add);
+	
+	/**
+	 * 校验数据
+	 * @param fileUrl fileUrl
+	 */
+	void validPicture(String fileUrl);
 	
 	/**
 	 * 获取查询条件
@@ -90,4 +97,23 @@ public interface PictureService extends IService<Picture> {
 	 */
 	PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest,
 	                        User loginUser) throws IOException;
+	/**
+	 * 上传图片(根据地址)
+	 *
+	 * @param fileUrl              fileUrl
+	 * @param pictureUploadRequest pictureUploadRequest
+	 * @param loginUser            loginUser
+	 * @return {@link PictureVO}
+	 */
+	PictureVO uploadPicture(String fileUrl, PictureUploadRequest pictureUploadRequest, User loginUser) throws IOException;
+	
+	/**
+	 * 批量抓取和创建图片
+	 *
+	 * @param pictureUploadByBatchRequest pictureUploadByBatchRequest
+	 * @param loginUser                   loginUser
+	 * @return 成功创建的图片数
+	 */
+	Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser);
+	
 }
