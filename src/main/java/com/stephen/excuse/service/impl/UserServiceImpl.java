@@ -97,6 +97,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 	}
 	
 	/**
+	 * 获得加密密码
+	 *
+	 * @param userPassword userPassword
+	 * @return String
+	 */
+	@Override
+	public String getEncryptPassword(String userPassword) {
+		return DigestUtils.md5DigestAsHex((SaltConstant.SALT + userPassword).getBytes());
+		
+	}
+	
+	/**
 	 * @param userAccount   用户账户
 	 * @param userPassword  用户密码
 	 * @param checkPassword 校验密码
@@ -127,7 +139,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 				throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
 			}
 			// 2. 加密
-			String encryptPassword = DigestUtils.md5DigestAsHex((SaltConstant.SALT + userPassword).getBytes());
+			String encryptPassword = getEncryptPassword(userPassword);
 			// 3. 插入数据
 			User user = new User();
 			user.setUserAccount(userAccount);
@@ -161,7 +173,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 			throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
 		}
 		// 2. 加密
-		String encryptPassword = DigestUtils.md5DigestAsHex((SaltConstant.SALT + userPassword).getBytes());
+		String encryptPassword = getEncryptPassword(userPassword);
 		// 查询用户是否存在
 		LambdaQueryWrapper<User> eq = Wrappers.lambdaQuery(User.class)
 				.eq(User::getUserAccount, userAccount)

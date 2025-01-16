@@ -30,6 +30,14 @@ public interface UserService extends IService<User> {
 	void validUser(User user, boolean add);
 	
 	/**
+	 * 获得加密密码
+	 *
+	 * @param userPassword userPassword
+	 * @return String
+	 */
+	String getEncryptPassword(String userPassword);
+	
+	/**
 	 * 用户注册
 	 *
 	 * @param userAccount   用户账户

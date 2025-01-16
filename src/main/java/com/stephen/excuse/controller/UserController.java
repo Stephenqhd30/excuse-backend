@@ -167,7 +167,7 @@ public class UserController {
 		}
 		// todo 填充默认值
 		// 默认密码 12345678
-		String encryptPassword = DigestUtils.md5DigestAsHex((SaltConstant.SALT + UserConstant.DEFAULT_PASSWORD).getBytes());
+		String encryptPassword = userService.getEncryptPassword(UserConstant.DEFAULT_PASSWORD);
 		user.setUserPassword(encryptPassword);
 		// 设置一个默认的头像
 		user.setUserAvatar(Optional.ofNullable(user.getUserAvatar()).orElse(UserConstant.USER_AVATAR));
@@ -234,9 +234,10 @@ public class UserController {
 		User oldUser = userService.getById(id);
 		ThrowUtils.throwIf(oldUser == null, ErrorCode.NOT_FOUND_ERROR);
 		// 如果用户需要修改密码
-		if (StringUtils.isNotBlank(userUpdateRequest.getUserPassword())) {
+		String userPassword = userUpdateRequest.getUserPassword();
+		if (StringUtils.isNotBlank(userPassword)) {
 			// todo 密码加密
-			String encryptPassword = DigestUtils.md5DigestAsHex((SaltConstant.SALT + userUpdateRequest.getUserPassword()).getBytes());
+			String encryptPassword = userService.getEncryptPassword(userPassword);
 			user.setUserPassword(encryptPassword);
 		}
 		// 操作数据库
@@ -345,9 +346,10 @@ public class UserController {
 			return ResultUtils.error(ErrorCode.PARAMS_ERROR, e.getMessage());
 		}
 		// 如果用户需要修改密码
-		if (StringUtils.isNotBlank(userEditRequest.getUserPassword())) {
+		String userPassword = userEditRequest.getUserPassword();
+		if (StringUtils.isNotBlank(userPassword)) {
 			// todo 密码加密
-			String encryptPassword = DigestUtils.md5DigestAsHex((SaltConstant.SALT + userEditRequest.getUserPassword()).getBytes());
+			String encryptPassword = userService.getEncryptPassword(userPassword);
 			user.setUserPassword(encryptPassword);
 		}
 		user.setId(loginUser.getId());

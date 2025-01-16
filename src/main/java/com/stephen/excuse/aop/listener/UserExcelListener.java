@@ -90,7 +90,7 @@ public class UserExcelListener extends AnalysisEventListener<User> {
 			newUser.setUserPhone(Optional.ofNullable(newUser.getUserPhone())
 					.orElse("该用户很懒没有设置电话"));
 			newUser.setUserAvatar(UserConstant.USER_AVATAR);
-			newUser.setUserPassword(DigestUtils.md5DigestAsHex((SaltConstant.SALT + user.getUserPassword()).getBytes()));
+			newUser.setUserPassword(userService.getEncryptPassword(newUser.getUserPassword()));
 			newUser.setUserRole(UserConstant.DEFAULT_ROLE);
 			cachedDataList.add(newUser);
 			successRecords.add(new SuccessRecord<>(newUser, "成功导入"));
