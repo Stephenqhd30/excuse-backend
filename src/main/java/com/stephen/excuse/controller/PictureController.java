@@ -9,12 +9,14 @@ import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.constants.UserConstant;
 import com.stephen.excuse.model.dto.picture.*;
 import com.stephen.excuse.model.entity.Picture;
+import com.stephen.excuse.model.entity.Space;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.enums.ReviewStatusEnum;
 import com.stephen.excuse.model.enums.file.FileUploadBizEnum;
 import com.stephen.excuse.model.vo.PictureVO;
 import com.stephen.excuse.service.LogFilesService;
 import com.stephen.excuse.service.PictureService;
+import com.stephen.excuse.service.SpaceService;
 import com.stephen.excuse.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
@@ -45,6 +47,9 @@ public class PictureController {
 	
 	@Resource
 	private LogFilesService logFilesService;
+	
+	@Resource
+	private SpaceService spaceService;;
 	
 	// region 增删改查
 	
@@ -128,7 +133,6 @@ public class PictureController {
 		}
 		// 数据校验
 		pictureService.validPicture(picture, false);
-		
 		// 判断是否存在
 		long id = pictureUpdateRequest.getId();
 		Picture oldPicture = pictureService.getById(id);
@@ -313,7 +317,6 @@ public class PictureController {
 	@PostMapping("/upload")
 	public BaseResponse<PictureVO> uploadPicture(@RequestPart("file") MultipartFile multipartFile,
 	                                             PictureUploadRequest pictureUploadRequest, HttpServletRequest request) {
-		ThrowUtils.throwIf(multipartFile == null || multipartFile.isEmpty(), ErrorCode.PARAMS_ERROR, "上传文件不能为空");
 		ThrowUtils.throwIf(pictureUploadRequest == null, ErrorCode.PARAMS_ERROR, "上传请求参数不能为空");
 		String biz = pictureUploadRequest.getBiz();
 		FileUploadBizEnum fileUploadBizEnum = FileUploadBizEnum.getEnumByValue(biz);
@@ -324,6 +327,16 @@ public class PictureController {
 		// todo 填充默认值
 		User loginUser = userService.getLoginUser(request);
 		ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+		// 校验空间是否存在
+		Long spaceId = pictureUploadRequest.getSpaceId();
+		if (spaceId != null) {
+			Space space = spaceService.getById(spaceId);
+			ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+			// 必须空间创建人（管理员）才能上传
+			if (!loginUser.getId().equals(space.getUserId())) {
+				throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+			}
+		}
 		// 直接上传文件
 		try {
 			PictureVO pictureVO = pictureService.uploadPicture(multipartFile, pictureUploadRequest, loginUser);
@@ -351,6 +364,15 @@ public class PictureController {
 		// todo 填充默认值
 		User loginUser = userService.getLoginUser(request);
 		ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+		Long spaceId = pictureUploadRequest.getSpaceId();
+		if (spaceId != null) {
+			Space space = spaceService.getById(spaceId);
+			ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+			// 必须空间创建人（管理员）才能上传
+			if (!loginUser.getId().equals(space.getUserId())) {
+				throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+			}
+		}
 		// 直接上传文件
 		try {
 			PictureVO pictureVO = pictureService.uploadPicture(fileUrl, pictureUploadRequest, loginUser);

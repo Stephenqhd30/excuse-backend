@@ -22,7 +22,7 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
 	private Long id;
 	
 	/**
-	 * id
+	 * notId
 	 */
 	private Long notId;
 	

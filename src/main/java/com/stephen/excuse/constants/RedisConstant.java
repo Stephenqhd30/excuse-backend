@@ -14,10 +14,10 @@ public interface RedisConstant {
 	/**
 	 * Redis key 标签树
 	 */
-	String TAG_TREE_KEY = "tag_tree";
+	String TAG_TREE_KEY = "tag:tree";
 	
 	/**
 	 * Redis key 匹配用户
 	 */
-	String MATCH_USER = "match_user";
+	String MATCH_USER = "match:user";
 }
