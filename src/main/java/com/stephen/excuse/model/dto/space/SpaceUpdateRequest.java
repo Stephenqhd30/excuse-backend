@@ -3,7 +3,6 @@ package com.stephen.excuse.model.dto.space;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * 更新空间请求

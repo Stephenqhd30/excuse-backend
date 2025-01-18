@@ -4,7 +4,6 @@ import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.event.AnalysisEventListener;
 import com.alibaba.excel.util.ListUtils;
 import com.stephen.excuse.constants.ExcelConstant;
-import com.stephen.excuse.constants.SaltConstant;
 import com.stephen.excuse.constants.UserConstant;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.enums.user.UserGenderEnum;
@@ -14,7 +13,6 @@ import com.stephen.excuse.utils.document.excel.model.SuccessRecord;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.util.DigestUtils;
 
 import java.util.List;
 import java.util.Optional;

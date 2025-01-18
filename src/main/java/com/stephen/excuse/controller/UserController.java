@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.stephen.excuse.common.*;
 import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.config.wx.WxOpenConfiguration;
-import com.stephen.excuse.constants.SaltConstant;
 import com.stephen.excuse.constants.UserConstant;
 import com.stephen.excuse.model.dto.user.*;
 import com.stephen.excuse.model.entity.User;
@@ -18,7 +17,6 @@ import me.chanjar.weixin.common.bean.oauth2.WxOAuth2AccessToken;
 import me.chanjar.weixin.mp.api.WxMpService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;

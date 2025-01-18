@@ -49,7 +49,8 @@ public class PictureController {
 	private LogFilesService logFilesService;
 	
 	@Resource
-	private SpaceService spaceService;;
+	private SpaceService spaceService;
+	;
 	
 	// region 增删改查
 	

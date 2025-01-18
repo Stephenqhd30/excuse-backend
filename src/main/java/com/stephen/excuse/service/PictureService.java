@@ -32,6 +32,7 @@ public interface PictureService extends IService<Picture> {
 	
 	/**
 	 * 校验数据
+	 *
 	 * @param fileUrl fileUrl
 	 */
 	void validPicture(String fileUrl);
@@ -97,6 +98,7 @@ public interface PictureService extends IService<Picture> {
 	 */
 	PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest,
 	                        User loginUser) throws IOException;
+	
 	/**
 	 * 上传图片(根据地址)
 	 *
