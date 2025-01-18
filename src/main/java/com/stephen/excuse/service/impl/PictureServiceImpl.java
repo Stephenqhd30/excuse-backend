@@ -118,9 +118,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 				ErrorCode.PARAMS_ERROR, "仅支持 HTTP 或 HTTPS 协议的文件地址");
 		
 		// 3. 发送 HEAD 请求以验证文件是否存在
-		HttpResponse response = null;
-		try {
-			response = HttpUtil.createRequest(Method.HEAD, fileUrl).execute();
+		try (HttpResponse response = HttpUtil.createRequest(Method.HEAD, fileUrl).execute()) {
 			// 未正常返回，无需执行其他判断
 			if (response.getStatus() != HttpStatus.HTTP_OK) {
 				return;
@@ -129,8 +127,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 			String contentType = response.header("Content-Type");
 			if (StrUtil.isNotBlank(contentType)) {
 				// 允许的图片类型
-				List<String> ALLOW_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
-				ThrowUtils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()),
+				List<String> allowContentTypes = Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
+				ThrowUtils.throwIf(!allowContentTypes.contains(contentType.toLowerCase()),
 						ErrorCode.PARAMS_ERROR, "文件类型错误");
 			}
 			// 5. 校验文件大小
@@ -143,10 +141,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 				} catch (NumberFormatException e) {
 					throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件大小格式错误");
 				}
-			}
-		} finally {
-			if (response != null) {
-				response.close();
 			}
 		}
 	}
@@ -421,8 +415,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		picture.setUserId(loginUser.getId());
 		if (pictureId != null) {
 			picture.setId(pictureId);
-			boolean b = this.updateById(picture);
-			ThrowUtils.throwIf(!b, ErrorCode.OPERATION_ERROR);
+			boolean updated = this.updateById(picture);
+			ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新图片失败");
+		} else {
+			boolean saved = this.save(picture);
+			ThrowUtils.throwIf(!saved, ErrorCode.OPERATION_ERROR, "保存图片失败");
 		}
 		return PictureVO.objToVo(picture);
 	}
@@ -462,8 +459,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 		picture.setUserId(loginUser.getId());
 		if (pictureId != null) {
 			picture.setId(pictureId);
-			boolean b = this.updateById(picture);
-			ThrowUtils.throwIf(!b, ErrorCode.OPERATION_ERROR);
+			boolean updated = this.updateById(picture);
+			ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新图片失败");
+		} else {
+			boolean saved = this.save(picture);
+			ThrowUtils.throwIf(!saved, ErrorCode.OPERATION_ERROR, "保存图片失败");
 		}
 		return PictureVO.objToVo(picture);
 	}

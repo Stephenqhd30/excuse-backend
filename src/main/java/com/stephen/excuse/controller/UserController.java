@@ -198,7 +198,7 @@ public class UserController {
 		User oldUser = userService.getById(id);
 		ThrowUtils.throwIf(oldUser == null, ErrorCode.NOT_FOUND_ERROR);
 		// 仅本人或管理员可删除
-		if (oldUser.getId().equals(user.getId()) || userService.isAdmin(request)) {
+		if (!oldUser.getId().equals(user.getId()) && !userService.isAdmin(request)) {
 			throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
 		}
 		// 操作数据库
@@ -224,11 +224,7 @@ public class UserController {
 		User user = new User();
 		BeanUtils.copyProperties(userUpdateRequest, user);
 		// 数据校验
-		try {
-			userService.validUser(user, false);
-		} catch (Exception e) {
-			return ResultUtils.error(ErrorCode.PARAMS_ERROR, e.getMessage());
-		}
+		userService.validUser(user, false);
 		// 判断是否存在
 		long id = userUpdateRequest.getId();
 		User oldUser = userService.getById(id);
@@ -340,11 +336,7 @@ public class UserController {
 		User user = new User();
 		BeanUtils.copyProperties(userEditRequest, user);
 		// 对用户数据进行校验
-		try {
-			userService.validUser(user, false);
-		} catch (Exception e) {
-			return ResultUtils.error(ErrorCode.PARAMS_ERROR, e.getMessage());
-		}
+		userService.validUser(user, false);
 		// 如果用户需要修改密码
 		String userPassword = userEditRequest.getUserPassword();
 		if (StringUtils.isNotBlank(userPassword)) {

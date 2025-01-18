@@ -155,7 +155,7 @@ knife4j:
 
 # Redisson 配置
 redisson:
-  enabled: false
+  enabled: true
   database: ${dev.redisson.database}
   host: ${dev.redisson.host}
   port: ${dev.redisson.port}
