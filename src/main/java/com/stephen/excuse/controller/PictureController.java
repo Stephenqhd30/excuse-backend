@@ -1,6 +1,8 @@
 package com.stephen.excuse.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.hutool.core.lang.TypeReference;
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -18,9 +20,12 @@ import com.stephen.excuse.service.LogFilesService;
 import com.stephen.excuse.service.PictureService;
 import com.stephen.excuse.service.SpaceService;
 import com.stephen.excuse.service.UserService;
+import com.stephen.excuse.utils.caffeine.LocalCacheUtils;
+import com.stephen.excuse.utils.redisson.cache.CacheUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +33,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 图片接口
@@ -50,7 +56,6 @@ public class PictureController {
 	
 	@Resource
 	private SpaceService spaceService;
-	;
 	
 	// region 增删改查
 	
@@ -190,19 +195,61 @@ public class PictureController {
 	@PostMapping("/list/page/vo")
 	public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryRequest pictureQueryRequest,
 	                                                         HttpServletRequest request) {
+		// 参数校验，确保请求不为空
 		ThrowUtils.throwIf(pictureQueryRequest == null, ErrorCode.PARAMS_ERROR);
 		// 限制只能查询过审的图片
 		pictureQueryRequest.setReviewStatus(ReviewStatusEnum.PASS.getValue());
 		long current = pictureQueryRequest.getCurrent();
 		long size = pictureQueryRequest.getPageSize();
-		// 限制爬虫
+		// 限制爬虫请求
 		ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-		// 查询数据库
+		
+		// 构建缓存 key（基于查询条件的 MD5 哈希值）
+		String queryCondition = JSONUtil.toJsonStr(pictureQueryRequest);
+		String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+		String cacheKey = "listPictureVOByPage:" + hashKey;
+		
+		// 1. 尝试从本地缓存中获取数据
+		String cachedValue = (String) LocalCacheUtils.get(cacheKey);
+		if (ObjUtil.isNotEmpty(cachedValue)) {
+			// 如果缓存命中，直接返回缓存中的分页结果
+			Page<PictureVO> cachedPage = JSONUtil.toBean(cachedValue, Page.class);
+			return ResultUtils.success(cachedPage);
+		}
+		
+		// 2. 如果本地缓存未命中，尝试从 Redis 缓存中获取数据
+		cachedValue = CacheUtils.get(cacheKey);
+		if (ObjUtil.isNotEmpty(cachedValue)) {
+			// 如果 Redis 缓存命中，将其存入本地缓存并返回
+			LocalCacheUtils.put(cacheKey, cachedValue);
+			Page<PictureVO> cachedPage = JSONUtil.toBean(cachedValue, Page.class);
+			return ResultUtils.success(cachedPage);
+		}
+		
+		// 3. 如果缓存都未命中，查询数据库
 		Page<Picture> picturePage = pictureService.page(new Page<>(current, size),
 				pictureService.getQueryWrapper(pictureQueryRequest));
-		// 获取封装类
-		return ResultUtils.success(pictureService.getPictureVOPage(picturePage, request));
+		
+		// 4. 将数据库查询结果转换为 VO 页面对象
+		Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
+		
+		// 5. 更新本地缓存和 Redis 缓存
+		String cacheValue = JSONUtil.toJsonStr(pictureVOPage);
+		// 更新本地缓存
+		LocalCacheUtils.put(cacheKey, cacheValue);
+		
+		try {
+			// 更新 Redis 缓存，并设置过期时间为 5 分钟
+			CacheUtils.put(cacheKey, cacheValue, TimeUnit.MINUTES.toMinutes(5L));
+		} catch (Exception e) {
+			// 如果 Redis 缓存更新失败，记录日志以便排查问题
+			log.error("更新 Redis 缓存失败, cacheKey: {}", cacheKey, e);
+		}
+		
+		// 6. 返回查询结果
+		return ResultUtils.success(pictureVOPage);
 	}
+	
 	
 	/**
 	 * 分页获取当前登录用户创建的图片列表
