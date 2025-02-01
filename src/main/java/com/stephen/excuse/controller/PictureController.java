@@ -3,6 +3,7 @@ package com.stephen.excuse.controller;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -33,6 +34,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -232,18 +234,16 @@ public class PictureController {
 		
 		// 4. 将数据库查询结果转换为 VO 页面对象
 		Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage, request);
-		
-		// 5. 更新本地缓存和 Redis 缓存
 		String cacheValue = JSONUtil.toJsonStr(pictureVOPage);
-		// 更新本地缓存
-		LocalCacheUtils.put(cacheKey, cacheValue);
-		
+		// 5. 更新本地缓存和 Redis 缓存
 		try {
-			// 更新 Redis 缓存，并设置过期时间为 5 分钟
-			CacheUtils.put(cacheKey, cacheValue, TimeUnit.MINUTES.toMinutes(5L));
+			// 更新本地缓存
+			LocalCacheUtils.put(cacheKey, cacheValue);
+			// 更新 Redis 缓存, 并设置随机过期时间为 2~5 分钟
+			CacheUtils.put(cacheKey, cacheValue, TimeUnit.MINUTES.toMinutes(RandomUtil.randomLong(2, 5)));
 		} catch (Exception e) {
 			// 如果 Redis 缓存更新失败，记录日志以便排查问题
-			log.error("更新 Redis 缓存失败, cacheKey: {}", cacheKey, e);
+			log.error("更新缓存失败, cacheKey: {}", cacheKey, e);
 		}
 		
 		// 6. 返回查询结果
