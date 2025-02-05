@@ -5,10 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.stephen.excuse.common.*;
 import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.constants.UserConstant;
-import com.stephen.excuse.model.dto.space.SpaceAddRequest;
-import com.stephen.excuse.model.dto.space.SpaceEditRequest;
-import com.stephen.excuse.model.dto.space.SpaceQueryRequest;
-import com.stephen.excuse.model.dto.space.SpaceUpdateRequest;
+import com.stephen.excuse.model.dto.space.*;
 import com.stephen.excuse.model.entity.Space;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.enums.SpaceLevelEnum;
@@ -22,7 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 空间接口
@@ -251,4 +251,23 @@ public class SpaceController {
 	}
 	
 	// endregion
+	
+	/**
+	 * 获取空间级别列表
+	 *
+	 * @return BaseResponse<List < SpaceLevel>>
+	 */
+	@GetMapping("/list/level")
+	public BaseResponse<List<SpaceLevel>> listSpaceLevel() {
+		// 获取所有枚举
+		List<SpaceLevel> spaceLevelList = Arrays.stream(SpaceLevelEnum.values())
+				.map(spaceLevelEnum -> new SpaceLevel(
+						spaceLevelEnum.getValue(),
+						spaceLevelEnum.getText(),
+						spaceLevelEnum.getMaxCount(),
+						spaceLevelEnum.getMaxSize()))
+				.collect(Collectors.toList());
+		return ResultUtils.success(spaceLevelList);
+	}
+	
 }

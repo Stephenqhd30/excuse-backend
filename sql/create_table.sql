@@ -141,3 +141,7 @@ create table if not exists space
     index idx_spaceName (spaceName),  -- 提升基于空间名称的查询效率
     index idx_spaceLevel (spaceLevel) -- 提升按空间级别查询的效率
 ) comment '空间' collate = utf8mb4_unicode_ci;
+
+
+
+
