@@ -1,5 +1,6 @@
 package com.stephen.excuse.config.caffeine;
 
+import cn.hutool.core.util.RandomUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.stephen.excuse.config.caffeine.condition.CaffeineCondition;
@@ -29,8 +30,8 @@ public class CaffeineConfiguration {
 	@Bean("localCache")
 	public Cache<String, Object> localCache() {
 		return Caffeine.newBuilder()
-				.expireAfterWrite(caffeineProperties.getExpired(), TimeUnit.SECONDS)
-				.expireAfterAccess(caffeineProperties.getExpired(), TimeUnit.SECONDS)
+				.expireAfterWrite(caffeineProperties.getExpired() + RandomUtil.randomLong(1, 3), TimeUnit.SECONDS)
+				.expireAfterAccess(caffeineProperties.getExpired() + RandomUtil.randomLong(1, 3), TimeUnit.SECONDS)
 				// 初始的缓存空间大小
 				.initialCapacity(caffeineProperties.getInitCapacity())
 				// 缓存的最大条数
