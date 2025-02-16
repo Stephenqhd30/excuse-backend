@@ -12,6 +12,7 @@ import com.stephen.excuse.common.exception.BusinessException;
 import com.stephen.excuse.constants.CommonConstant;
 import com.stephen.excuse.mapper.SpaceMapper;
 import com.stephen.excuse.model.dto.space.SpaceQueryRequest;
+import com.stephen.excuse.model.dto.space.analyze.SpaceAnalyzeRequest;
 import com.stephen.excuse.model.entity.Space;
 import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.enums.SpaceLevelEnum;
@@ -208,5 +209,51 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
 		spaceVOPage.setRecords(spaceVOList);
 		return spaceVOPage;
 	}
+	
+	/**
+	 * 校验空间权限（仅管理员和自己可以编辑）
+	 *
+	 * @param loginUser loginUser
+	 * @param space     space
+	 */
+	@Override
+	public void checkSpaceAuth(User loginUser, Space space) {
+		Long spaceId = space.getId();
+		if (spaceId == null) {
+			// 仅本人或管理员可操作
+			if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+				throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+			}
+		} else {
+			// 私有空间，仅空间管理员可操作
+			if (!space.getUserId().equals(loginUser.getId())) {
+				throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+			}
+		}
+	}
+	
+	
+	/**
+	 * 校验空间分析权限
+	 *
+	 * @param spaceAnalyzeRequest spaceAnalyzeRequest
+	 * @param loginUser           loginUser
+	 */
+	@Override
+	public void checkSpaceAnalyzeAuth(SpaceAnalyzeRequest spaceAnalyzeRequest, User loginUser) {
+		// 检查权限
+		if (spaceAnalyzeRequest.isQueryAll() || spaceAnalyzeRequest.isQueryPublic()) {
+			// 全空间分析或者公共图库权限校验：仅管理员可访问
+			ThrowUtils.throwIf(!userService.isAdmin(loginUser), ErrorCode.NO_AUTH_ERROR, "无权访问公共图库");
+		} else {
+			// 私有空间权限校验
+			Long spaceId = spaceAnalyzeRequest.getSpaceId();
+			ThrowUtils.throwIf(spaceId == null || spaceId <= 0, ErrorCode.PARAMS_ERROR);
+			Space space = this.getById(spaceId);
+			ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+			this.checkSpaceAuth(loginUser, space);
+		}
+	}
+	
 	
 }

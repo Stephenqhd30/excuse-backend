@@ -4,8 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 /**
+ * 空间级别
+ *
  * @author stephen qiu
- * @Description: 空间级别
  */
 @Data
 @AllArgsConstructor

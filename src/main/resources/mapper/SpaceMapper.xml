@@ -25,4 +25,14 @@
         totalCount,userId,createTime,
         editTime,updateTime,isDelete
     </sql>
+
+    <!-- 获取存储使用量排名前 N 的空间 -->
+    <delete id="deleteByUserId">
+        delete from space where userId = #{userId}
+    </delete>
+
+    <!-- 删除某用户的所有空间 -->
+    <select id="getTopNSpaceUsage" resultType="com.stephen.excuse.model.entity.Space">
+        select id, spaceNmae, userId, totolSize from space order by totolSize desc limit #{topN}
+    </select>
 </mapper>

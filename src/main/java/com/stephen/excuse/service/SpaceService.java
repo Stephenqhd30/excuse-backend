@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.stephen.excuse.model.dto.space.SpaceQueryRequest;
+import com.stephen.excuse.model.dto.space.analyze.SpaceAnalyzeRequest;
 import com.stephen.excuse.model.entity.Space;
+import com.stephen.excuse.model.entity.User;
 import com.stephen.excuse.model.vo.SpaceVO;
 
 import javax.servlet.http.HttpServletRequest;
@@ -56,4 +58,20 @@ public interface SpaceService extends IService<Space> {
 	 * @return {@link Page<SpaceVO>}
 	 */
 	Page<SpaceVO> getSpaceVOPage(Page<Space> spacePage, HttpServletRequest request);
+	
+	/**
+	 * 校验空间权限（仅管理员和自己可以编辑）
+	 *
+	 * @param loginUser loginUser
+	 * @param space     space
+	 */
+	void checkSpaceAuth(User loginUser, Space space);
+	
+	/**
+	 * 校验空间分析权限
+	 *
+	 * @param spaceAnalyzeRequest spaceAnalyzeRequest
+	 * @param loginUser           loginUser
+	 */
+	void checkSpaceAnalyzeAuth(SpaceAnalyzeRequest spaceAnalyzeRequest, User loginUser);
 }
