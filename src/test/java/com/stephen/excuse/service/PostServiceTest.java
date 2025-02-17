@@ -1,7 +1,6 @@
 package com.stephen.excuse.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.stephen.excuse.elasticsearch.service.PostEsService;
 import com.stephen.excuse.model.dto.post.PostQueryRequest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
